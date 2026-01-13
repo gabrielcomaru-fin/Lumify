@@ -10,8 +10,15 @@ export const envExample = {
   VITE_APP_NAME: 'NovaFin',
   VITE_APP_VERSION: '1.0.0',
   
-  // URL base para redirecionamentos (opcional)
+  // URL base para redirecionamentos (obrigatório em produção)
+  // IMPORTANTE: Atualize com seu domínio de produção
+  // Produção: 'https://lumify.app.br'
   VITE_REDIRECT_URL_BASE: 'http://localhost:5173',
+  
+  // Base path do Vite (opcional, padrão: '/')
+  // Use apenas se sua aplicação estiver em um subpath
+  // Exemplo: '/app/' se acessar via https://dominio.com/app/
+  VITE_BASE_PATH: '/',
   
   // Configurações de desenvolvimento
   NODE_ENV: 'development'
