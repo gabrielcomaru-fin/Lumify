@@ -86,16 +86,23 @@ location / {
 }
 ```
 
-#### Para Vercel
-Crie um arquivo `vercel.json` na raiz:
+#### Para Vercel ✅ CONFIGURADO
+O arquivo `vercel.json` já foi criado na raiz do projeto com:
+- ✅ Rewrites para SPA (todas as rotas redirecionam para index.html)
+- ✅ Headers de segurança configurados
+- ✅ Cache otimizado para assets estáticos
+- ✅ Configurações de build automáticas
 
-```json
-{
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-```
+**Próximos passos na Vercel:**
+1. Conecte seu repositório GitHub à Vercel
+2. Configure as variáveis de ambiente no painel da Vercel:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_REDIRECT_URL_BASE=https://lumify.app.br`
+   - `VITE_BASE_PATH=/`
+   - `VITE_APP_NAME=Lumify`
+3. Configure o domínio `lumify.app.br` nas configurações do projeto
+4. Faça o deploy!
 
 #### Para Netlify
 Crie um arquivo `public/_redirects`:
