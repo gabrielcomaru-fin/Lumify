@@ -146,7 +146,9 @@ logger.error = (msg, options) => {
 // ------------------- Configuração Vite ------------------- //
 
 export default defineConfig({
-	base: '/NovaFin/', // Para GitHub Pages
+	// Base path: '/' para domínio raiz, '/app/' para subpath
+	// IMPORTANTE: Atualize conforme seu domínio de produção
+	base: process.env.VITE_BASE_PATH || '/',
 	customLogger: logger,
 	plugins: [
 		...(isDev ? [inlineEditPlugin(), editModeDevPlugin()] : []),

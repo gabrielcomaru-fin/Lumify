@@ -66,7 +66,13 @@ VITE_APP_VERSION=1.0.0
 VITE_APP_ENVIRONMENT=development
 
 # URLs de redirecionamento
+# IMPORTANTE: Atualize com seu domínio de produção antes do deploy
+# Produção: VITE_REDIRECT_URL_BASE=https://lumify.app.br
 VITE_REDIRECT_URL_BASE=http://localhost:5173
+
+# Base path do Vite (opcional, padrão: '/')
+# Use apenas se sua aplicação estiver em um subpath
+VITE_BASE_PATH=/
 `;
 
   fs.writeFileSync(envPath, envContent);
