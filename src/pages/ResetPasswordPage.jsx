@@ -19,40 +19,53 @@ export function ResetPasswordPage() {
 
   // Verificar se é um link válido de recovery
   useEffect(() => {
-    // Verificar PRIMEIRO se há tokens de recovery na URL (antes de qualquer outra coisa)
+    // Verificar PRIMEIRO o sessionStorage (marcado pelo main.jsx ANTES do React inicializar)
+    const recoveryFromStorage = sessionStorage.getItem('supabase_password_recovery') === 'true';
+    
+    // Verificar também na URL (pode ainda estar lá)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const searchParams = new URLSearchParams(window.location.search);
     const type = hashParams.get('type') || searchParams.get('type');
     const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+    const recoveryFromUrl = type === 'recovery' && accessToken;
     
-    // Se há tokens de recovery na URL, marcar como válido IMEDIATAMENTE
-    if (type === 'recovery' && accessToken) {
+    console.log('[ResetPasswordPage] Checking recovery:', { 
+      recoveryFromStorage, 
+      recoveryFromUrl, 
+      isPasswordRecovery, 
+      user: !!user, 
+      loading 
+    });
+    
+    // Se há recovery no sessionStorage OU na URL, marcar como válido IMEDIATAMENTE
+    if (recoveryFromStorage || recoveryFromUrl) {
       setIsValidRecovery(true);
-      // Limpar a URL dos tokens após detectar
+      console.log('[ResetPasswordPage] Recovery VALID - from', recoveryFromStorage ? 'sessionStorage' : 'URL');
+      
+      // Limpar a URL dos tokens se ainda existirem
       if (window.location.hash && (hashParams.has('type') || hashParams.has('access_token'))) {
         window.history.replaceState(null, '', window.location.pathname);
       } else if (searchParams.has('type') || searchParams.has('access_token')) {
         window.history.replaceState(null, '', window.location.pathname);
       }
-      return; // Não fazer mais verificações se já detectamos recovery na URL
+      return; // Não fazer mais verificações
     }
 
     if (loading) return;
 
-    // Verificar se é um recovery válido através do evento ou da URL
-    // O Supabase pode processar os tokens automaticamente, então verificamos ambos
-    const hasRecoveryToken = type === 'recovery' || isPasswordRecovery;
-    
-    if (hasRecoveryToken && user) {
-      // Se temos um usuário autenticado e é um recovery, permitir alteração
+    // Verificar se é um recovery válido através do contexto
+    if (isPasswordRecovery && user) {
       setIsValidRecovery(true);
+      console.log('[ResetPasswordPage] Recovery VALID - from context');
     } else if (!loading) {
       // Se não é um recovery válido e não está carregando, verificar se deve redirecionar
-      if (!hasRecoveryToken && user) {
+      if (!isPasswordRecovery && user) {
         // Usuário autenticado mas não veio de recovery - redirecionar para dashboard
+        console.log('[ResetPasswordPage] User authenticated but NOT recovery - redirecting to dashboard');
         navigate('/dashboard');
-      } else if (!user && !hasRecoveryToken) {
+      } else if (!user && !isPasswordRecovery) {
         // Sem usuário e sem recovery - link inválido
+        console.log('[ResetPasswordPage] No user and no recovery - redirecting to login');
         toast({
           variant: "destructive",
           title: "Link inválido",
