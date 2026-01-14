@@ -2,6 +2,8 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
+
+// Lazy imports
 const LandingPage = lazy(() => import('@/pages/LandingPage').then(m => ({ default: m.LandingPage })));
 const LoginPage = lazy(() => import('@/pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
@@ -18,6 +20,7 @@ const InvestmentProjectionPage = lazy(() => import('@/pages/InvestmentProjection
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })));
 const GamificationPage = lazy(() => import('@/pages/GamificationPage').then(m => ({ default: m.GamificationPage })));
 const PatrimonyDetailPage = lazy(() => import('@/pages/PatrimonyDetailPage').then(m => ({ default: m.PatrimonyDetailPage })));
+
 import { MainLayout } from '@/components/MainLayout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ProtectedResetRoute } from '@/components/ProtectedResetRoute';
@@ -34,29 +37,22 @@ function AppContent() {
   // Hook que verifica recovery ANTES de qualquer coisa
   const recoveryFromHook = useRecoveryCheck();
   
-  // Verificação adicional: se estamos em /reset-password e há sessão recente, pode ser recovery
-  const isOnResetPage = typeof window !== 'undefined' && window.location.pathname === '/reset-password';
+  // Verificações em tempo real para evitar redirecionamentos indesejados
+  const hash = typeof window !== 'undefined' ? window.location.hash : '';
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  
+  // 1. Detectar se há tokens de recovery diretamente na URL (Crítico para evitar o pulo para o dashboard)
+  const isRecoveryInUrl = hash.includes('type=recovery') || hash.includes('access_token=') || hash.includes('error_code=otp_expired');
+  
+  // 2. Consolidar se o app deve estar em modo de recuperação
+  const isOnResetPage = pathname === '/reset-password';
   const recoveryTime = typeof window !== 'undefined' ? sessionStorage.getItem('recovery_session_time') : null;
-  const recentRecovery = recoveryTime && (Date.now() - parseInt(recoveryTime)) < 30000; // 30 segundos
+  const recentRecovery = recoveryTime && (Date.now() - parseInt(recoveryTime)) < 60000; // Aumentado para 60s
   
-  const isInRecoveryMode = recoveryFromHook || isPasswordRecovery || (isOnResetPage && user && recentRecovery);
-  
-  // DEBUG: Log para diagnóstico
-  if (typeof window !== 'undefined') {
-    console.log('[AppContent] State:', {
-      user: !!user,
-      loading,
-      isPasswordRecovery,
-      recoveryFromHook,
-      isOnResetPage,
-      recentRecovery,
-      isInRecoveryMode,
-      currentPath: window.location.pathname,
-      hash: window.location.hash.substring(0, 50),
-      sessionStorage: sessionStorage.getItem('supabase_password_recovery'),
-      recoveryTime
-    });
-  }
+  const isInRecoveryMode = recoveryFromHook || isPasswordRecovery || isRecoveryInUrl || (isOnResetPage && recentRecovery);
+
+  // Se houver qualquer indício de recovery, bloqueamos o redirecionamento automático para o dashboard
+  const shouldBlockDashboardRedirect = isInRecoveryMode || isRecoveryInUrl || isOnResetPage;
 
   if (loading) {
     return (
@@ -75,8 +71,6 @@ function AppContent() {
       <Helmet>
         <title>Lumify - Seu Controle Financeiro Pessoal</title>
         <meta name="description" content="Lumify: controle de despesas, investimentos e metas com dashboards claros e projeções inteligentes." />
-        <meta property="og:title" content="Lumify - Seu Controle Financeiro Pessoal" />
-        <meta property="og:description" content="Controle suas finanças com o Lumify: orçamento, investimentos e relatórios em um só lugar." />
       </Helmet>
       
       <ErrorBoundary>
@@ -93,9 +87,11 @@ function AppContent() {
               </div>
             }>
             <Routes>
-              <Route path="/" element={!user || isInRecoveryMode ? <LandingPage /> : <Navigate to="/dashboard" />} />
-              <Route path="/login" element={!user || isInRecoveryMode ? <LoginPage /> : <Navigate to="/dashboard" />} />
-              <Route path="/register" element={!user || isInRecoveryMode ? <RegisterPage /> : <Navigate to="/dashboard" />} />
+              {/* Ajuste: Se houver indício de recovery, não redireciona para o dashboard mesmo com user presente */}
+              <Route path="/" element={!user || shouldBlockDashboardRedirect ? <LandingPage /> : <Navigate to="/dashboard" replace />} />
+              <Route path="/login" element={!user || shouldBlockDashboardRedirect ? <LoginPage /> : <Navigate to="/dashboard" replace />} />
+              <Route path="/register" element={!user || shouldBlockDashboardRedirect ? <RegisterPage /> : <Navigate to="/dashboard" replace />} />
+              
               <Route path="/reset-password" element={
                 <ProtectedResetRoute>
                   <ResetPasswordPage />
@@ -103,31 +99,28 @@ function AppContent() {
               } />
               
               <Route element={<MainLayout user={user} onLogout={signOut} />}>
-                <Route path="/dashboard" element={user ? <HomeSummaryPage /> : <Navigate to="/login" />} />
-                <Route path="/resumo" element={user ? <HomeSummaryPage /> : <Navigate to="/login" />} />
-                <Route path="/gastos" element={user ? <ExpensesPage /> : <Navigate to="/login" />} />
-                <Route path="/receitas" element={user ? <IncomesPage /> : <Navigate to="/login" />} />
-                <Route path="/investimentos" element={user ? <InvestmentsPage /> : <Navigate to="/login" />} />
-                <Route path="/projecao-investimentos" element={user ? <InvestmentProjectionPage /> : <Navigate to="/login" />} />
-                <Route path="/contas" element={user ? <AccountsPage /> : <Navigate to="/login" />} />
-                <Route path="/patrimonio" element={user ? <PatrimonyDetailPage /> : <Navigate to="/login" />} />
-                <Route path="/calculadora" element={user ? <CalculatorPage /> : <Navigate to="/login" />} />
-                <Route path="/relatorios" element={user ? <ReportsPage /> : <Navigate to="/login" />} />
-                <Route path="/conquistas" element={user ? <GamificationPage /> : <Navigate to="/login" />} />
-                <Route path="/gamificacao" element={<Navigate to="/conquistas" replace />} />
-                <Route path="/configuracoes" element={user ? <SettingsPage /> : <Navigate to="/login" />} />
-                <Route path="/planos" element={user ? <PlansPage /> : <Navigate to="/login" />} />
+                <Route path="/dashboard" element={user ? <HomeSummaryPage /> : <Navigate to="/login" replace />} />
+                <Route path="/resumo" element={user ? <HomeSummaryPage /> : <Navigate to="/login" replace />} />
+                <Route path="/gastos" element={user ? <ExpensesPage /> : <Navigate to="/login" replace />} />
+                <Route path="/receitas" element={user ? <IncomesPage /> : <Navigate to="/login" replace />} />
+                <Route path="/investimentos" element={user ? <InvestmentsPage /> : <Navigate to="/login" replace />} />
+                <Route path="/projecao-investimentos" element={user ? <InvestmentProjectionPage /> : <Navigate to="/login" replace />} />
+                <Route path="/contas" element={user ? <AccountsPage /> : <Navigate to="/login" replace />} />
+                <Route path="/patrimonio" element={user ? <PatrimonyDetailPage /> : <Navigate to="/login" replace />} />
+                <Route path="/calculadora" element={user ? <CalculatorPage /> : <Navigate to="/login" replace />} />
+                <Route path="/relatorios" element={user ? <ReportsPage /> : <Navigate to="/login" replace />} />
+                <Route path="/conquistas" element={user ? <GamificationPage /> : <Navigate to="/login" replace />} />
+                <Route path="/configuracoes" element={user ? <SettingsPage /> : <Navigate to="/login" replace />} />
+                <Route path="/planos" element={user ? <PlansPage /> : <Navigate to="/login" replace />} />
               </Route>
               
-              <Route path="*" element={<Navigate to={user && !isInRecoveryMode ? "/dashboard" : "/"} />} />
+              <Route path="*" element={<Navigate to={user && !shouldBlockDashboardRedirect ? "/dashboard" : "/"} replace />} />
             </Routes>
             </Suspense>
             </GamificationProvider>
           </FinanceDataProvider>
         </Router>
       </ErrorBoundary>
-      
-      {/* Toaster global para exibir notificações (erros de login, etc.) */}
       <Toaster />
     </>
   );
