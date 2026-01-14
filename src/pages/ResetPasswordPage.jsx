@@ -16,9 +16,42 @@ export function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isValidRecovery, setIsValidRecovery] = useState(false);
+  const [error, setError] = useState(null);
 
   // Verificar se é um link válido de recovery
   useEffect(() => {
+    // Verificar PRIMEIRO se há ERROS na URL (marcado pelo main.jsx)
+    const errorData = sessionStorage.getItem('supabase_auth_error');
+    if (errorData) {
+      try {
+        const parsedError = JSON.parse(errorData);
+        console.log('[ResetPasswordPage] Auth error detected:', parsedError);
+        
+        if (parsedError.error_code === 'otp_expired') {
+          setError({
+            type: 'expired',
+            message: 'Este link de redefinição de senha expirou. Por favor, solicite um novo link.',
+            description: parsedError.error_description || 'O link expirou'
+          });
+          // Limpar URL de erro
+          window.history.replaceState(null, '', '/reset-password');
+          sessionStorage.removeItem('supabase_auth_error');
+          return;
+        } else {
+          setError({
+            type: 'invalid',
+            message: 'Este link de redefinição de senha é inválido ou já foi usado.',
+            description: parsedError.error_description || 'Link inválido'
+          });
+          window.history.replaceState(null, '', '/reset-password');
+          sessionStorage.removeItem('supabase_auth_error');
+          return;
+        }
+      } catch (e) {
+        console.error('[ResetPasswordPage] Error parsing error data:', e);
+      }
+    }
+    
     // Verificar PRIMEIRO o sessionStorage (marcado pelo main.jsx ANTES do React inicializar)
     const recoveryFromStorage = sessionStorage.getItem('supabase_password_recovery') === 'true';
     
@@ -40,6 +73,7 @@ export function ResetPasswordPage() {
     // Se há recovery no sessionStorage OU na URL, marcar como válido IMEDIATAMENTE
     if (recoveryFromStorage || recoveryFromUrl) {
       setIsValidRecovery(true);
+      setError(null); // Limpar qualquer erro anterior
       console.log('[ResetPasswordPage] Recovery VALID - from', recoveryFromStorage ? 'sessionStorage' : 'URL');
       
       // Limpar a URL dos tokens se ainda existirem
@@ -119,6 +153,36 @@ export function ResetPasswordPage() {
       }, 2000);
     }
   };
+
+  // Mostrar erro se houver
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Helmet>
+          <title>Link expirado - Lumify</title>
+        </Helmet>
+        <div className="w-full max-w-md">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-destructive">Link Expirado</CardTitle>
+              <CardDescription>{error.message}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                {error.description}
+              </p>
+              <Button 
+                onClick={() => navigate('/login')} 
+                className="w-full"
+              >
+                Voltar para Login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   // Mostrar loading enquanto verifica
   if (loading || !isValidRecovery) {

@@ -13,10 +13,31 @@ import { AuthProvider } from '@/contexts/SupabaseAuthContext';
   
   console.log('[main.jsx] Early detection - URL:', { pathname, hash: hash.substring(0, 100), search });
   
-  // Verificar se é um link de recovery (pode estar no hash ou query params)
+  // Verificar se há ERROS na URL primeiro
   const hashParams = new URLSearchParams(hash.substring(1));
   const searchParams = new URLSearchParams(search);
   
+  const error = hashParams.get('error') || searchParams.get('error');
+  const errorCode = hashParams.get('error_code') || searchParams.get('error_code');
+  const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
+  
+  if (error) {
+    // Há um erro na URL - marcar no sessionStorage para tratamento
+    sessionStorage.setItem('supabase_auth_error', JSON.stringify({
+      error,
+      error_code: errorCode,
+      error_description: errorDescription
+    }));
+    console.log('[main.jsx] ⚠️ Auth error detected:', { error, errorCode, errorDescription });
+    
+    // Se for erro de expiração e estamos em /reset-password, manter na página para mostrar erro
+    if (errorCode === 'otp_expired' && pathname === '/reset-password') {
+      sessionStorage.setItem('supabase_password_recovery_error', 'expired');
+    }
+    return; // Não processar recovery se há erro
+  }
+  
+  // Verificar se é um link de recovery válido
   const type = hashParams.get('type') || searchParams.get('type');
   const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
   
