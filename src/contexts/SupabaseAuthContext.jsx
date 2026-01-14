@@ -82,13 +82,28 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
           return;
         }
-        handleSession(session);
         
-        // Se há um tipo de recovery na URL e uma sessão, marcar como recovery
+        // Se há recovery na URL e uma sessão foi criada, marcar como recovery
+        // Também verificar se estamos na rota de reset (pode indicar recovery recente)
         if (hasRecoveryInUrl && session) {
           setIsPasswordRecovery(true);
-          console.log('Password recovery confirmed with session');
+          console.log('[AuthContext] Password recovery confirmed with session');
+          // Marcar timestamp para verificar depois
+          sessionStorage.setItem('recovery_session_time', Date.now().toString());
+        } else if (session && window.location.pathname === '/reset-password') {
+          // Se há sessão e estamos em /reset-password, pode ser recovery recente
+          // Verificar se a sessão foi criada recentemente (últimos 10 segundos)
+          const recoveryTime = sessionStorage.getItem('recovery_session_time');
+          if (recoveryTime) {
+            const timeDiff = Date.now() - parseInt(recoveryTime);
+            if (timeDiff < 10000) { // 10 segundos
+              setIsPasswordRecovery(true);
+              console.log('[AuthContext] Recovery detected from recent session');
+            }
+          }
         }
+        
+        handleSession(session);
       } catch (error) {
         console.error('Session initialization error:', error);
         setLoading(false);
@@ -104,17 +119,33 @@ export const AuthProvider = ({ children }) => {
         // Detectar evento de password recovery
         if (event === 'PASSWORD_RECOVERY') {
           setIsPasswordRecovery(true);
-          console.log('Password recovery event detected');
+          sessionStorage.setItem('supabase_password_recovery', 'true');
+          sessionStorage.setItem('recovery_session_time', Date.now().toString());
+          console.log('[AuthContext] ✅ PASSWORD_RECOVERY event detected');
         }
         
-        // Também verificar na URL caso o evento não seja disparado
-        if (session) {
+        // Se há sessão e estamos em /reset-password, pode ser recovery
+        if (session && window.location.pathname === '/reset-password') {
+          // Verificar se há recovery na URL (pode ainda estar lá)
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const searchParams = new URLSearchParams(window.location.search);
           const type = hashParams.get('type') || searchParams.get('type');
+          
           if (type === 'recovery') {
             setIsPasswordRecovery(true);
-            console.log('Password recovery detected from URL in auth change');
+            sessionStorage.setItem('supabase_password_recovery', 'true');
+            sessionStorage.setItem('recovery_session_time', Date.now().toString());
+            console.log('[AuthContext] ✅ Recovery detected from URL in auth change');
+          } else {
+            // Verificar se a sessão foi criada recentemente (últimos 10 segundos)
+            const recoveryTime = sessionStorage.getItem('recovery_session_time');
+            if (recoveryTime) {
+              const timeDiff = Date.now() - parseInt(recoveryTime);
+              if (timeDiff < 10000) { // 10 segundos
+                setIsPasswordRecovery(true);
+                console.log('[AuthContext] ✅ Recovery detected from recent session timestamp');
+              }
+            }
           }
         }
         
