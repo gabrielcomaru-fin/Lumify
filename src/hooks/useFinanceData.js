@@ -920,95 +920,58 @@ export const useFinanceData = () => {
     }, [accounts]);
 
     // Calcular investimentos que devem ser somados ao patrimônio
-    // Lógica:
-    // 1. Se uma conta foi ajustada (updated_at > created_at), o saldo ajustado é a "verdade absoluta"
-    //    e apenas investimentos feitos APÓS o ajuste devem ser somados
-    // 2. Se uma conta não foi ajustada, soma todos os investimentos dessa instituição
-    // 3. Investimentos sem instituicao_id: se todas as contas foram ajustadas, usar a data do ajuste mais recente
-    //    como referência. Se não, soma sempre (investimentos gerais)
-    // IMPORTANTE: Este cálculo é recalculado automaticamente quando investments ou accounts mudam
-    // (por exemplo, quando um investimento é excluído via deleteInvestment ou uma conta é atualizada)
+    // Melhor precisão usando timestamps completos. Prefere `created_at` quando disponível,
+    // e cai para `data` como início do dia quando `created_at` não existir.
     const investmentsToAdd = useMemo(() => {
         if (!investments.length) return 0;
 
-        // Criar um mapa de contas com data de último ajuste
-        const accountAdjustmentDates = accounts.reduce((map, account) => {
-            const createdDate = account.created_at ? new Date(account.created_at) : null;
-            const updatedDate = account.updated_at ? new Date(account.updated_at) : null;
-            
-            // Se updated_at existe e é posterior a created_at, houve ajuste
-            // Usar uma margem maior (5 segundos) para evitar problemas de precisão de timestamp
-            const hasAdjustment = updatedDate && createdDate && 
-                                 updatedDate.getTime() > createdDate.getTime() + 5000;
-            
-            // Se houve ajuste, usar updated_at como data de referência
-            // Caso contrário, usar null (significa que não houve ajuste, então soma todos os investimentos)
-            const adjustmentDate = hasAdjustment ? updatedDate : null;
-            
-            map[account.id] = adjustmentDate;
-            return map;
-        }, {});
+        const accountAdjustmentDates = {};
+        accounts.forEach(account => {
+            const created = account.created_at ? parseISO(account.created_at) : null;
+            const updated = account.updated_at ? parseISO(account.updated_at) : null;
+            const hasAdjustment = updated && created && updated.getTime() > created.getTime();
+            accountAdjustmentDates[account.id] = hasAdjustment ? updated : null;
+        });
 
-        // Encontrar a data do ajuste mais recente (para investimentos sem instituição)
-        const allAdjustmentDates = Object.values(accountAdjustmentDates).filter(date => date !== null);
-        const latestAdjustmentDate = allAdjustmentDates.length > 0 
-            ? new Date(Math.max(...allAdjustmentDates.map(d => d.getTime())))
+        const adjustedDates = Object.values(accountAdjustmentDates).filter(d => d !== null);
+        const latestAdjustmentDate = adjustedDates.length > 0
+            ? new Date(Math.max(...adjustedDates.map(d => d.getTime())))
             : null;
 
-        // Verificar se todas as contas foram ajustadas
-        const allAccountsAdjusted = accounts.length > 0 && 
-                                   accounts.every(account => {
-                                       const adjustmentDate = accountAdjustmentDates[account.id];
-                                       return adjustmentDate !== null;
-                                   });
+        const allAccountsAdjusted = accounts.length > 0 && accounts.every(acc => accountAdjustmentDates[acc.id] !== null);
 
-        // Somar investimentos que devem ser considerados
-        return investments.reduce((total, investment) => {
-            // Usar valor_aporte (valor do aporte feito)
-            const valorAporte = Number(investment.valor_aporte || 0);
-            
-            if (!investment.instituicao_id) {
-                // Investimento sem instituição
-                if (allAccountsAdjusted && latestAdjustmentDate) {
-                    // Se todas as contas foram ajustadas, só soma investimentos após o ajuste mais recente
-                    const investmentDate = new Date(investment.data + 'T00:00:00'); // Garantir que é meia-noite para comparação correta
-                    const investmentDateOnly = new Date(investmentDate.getFullYear(), investmentDate.getMonth(), investmentDate.getDate());
-                    const latestAdjustmentDateOnly = new Date(latestAdjustmentDate.getFullYear(), latestAdjustmentDate.getMonth(), latestAdjustmentDate.getDate());
-                    
-                    // Se o investimento foi feito na mesma data ou após o ajuste mais recente, soma
-                    if (investmentDateOnly.getTime() >= latestAdjustmentDateOnly.getTime()) {
-                        return total + valorAporte;
-                    }
-                    return total;
-                } else {
-                    // Se nem todas as contas foram ajustadas, soma sempre (investimento geral)
+        return investments.reduce((total, inv) => {
+            const valorAporte = Number(inv.valor_aporte || 0);
+            // Prefer created_at with full timestamp; fallback to data at start of day
+            let invTimestamp = null;
+            if (inv.created_at) {
+                try { invTimestamp = parseISO(inv.created_at); } catch { invTimestamp = null; }
+            } else if (inv.data) {
+                try { invTimestamp = parseISO(inv.data + 'T00:00:00'); } catch { invTimestamp = null; }
+            }
+
+            if (inv.instituicao_id) {
+                const adj = accountAdjustmentDates[inv.instituicao_id];
+                if (!adj) {
                     return total + valorAporte;
                 }
+                if (!invTimestamp) return total; // sem info temporal => não soma por segurança
+
+                // Usar comparação por timestamp completo. Default: '>' (strictly after).
+                if (invTimestamp.getTime() > adj.getTime()) {
+                    return total + valorAporte;
+                }
+                return total;
             }
 
-            const adjustmentDate = accountAdjustmentDates[investment.instituicao_id];
-            
-            if (!adjustmentDate) {
-                // Se não há data de ajuste (conta nunca foi ajustada), soma sempre
-                return total + valorAporte;
+            if (allAccountsAdjusted && latestAdjustmentDate && invTimestamp) {
+                if (invTimestamp.getTime() > latestAdjustmentDate.getTime()) {
+                    return total + valorAporte;
+                }
+                return total;
             }
 
-            // Verificar se o investimento foi feito após o ajuste
-            // IMPORTANTE: Se o investimento foi feito na mesma data ou após o ajuste, ele deve ser somado
-            const investmentDate = new Date(investment.data + 'T00:00:00'); // Garantir que é meia-noite para comparação correta
-            
-            // Comparar apenas as datas (sem hora) para evitar problemas de timezone
-            const investmentDateOnly = new Date(investmentDate.getFullYear(), investmentDate.getMonth(), investmentDate.getDate());
-            const adjustmentDateOnly = new Date(adjustmentDate.getFullYear(), adjustmentDate.getMonth(), adjustmentDate.getDate());
-            
-            // Se o investimento foi feito na mesma data ou após o ajuste, soma
-            // (>= significa que investimentos do mesmo dia também são considerados)
-            if (investmentDateOnly.getTime() >= adjustmentDateOnly.getTime()) {
-                // Investimento na mesma data ou após o ajuste: soma
-                return total + valorAporte;
-            }
-            // Investimento antes do ajuste: não soma (já está incluído no saldo ajustado)
-            return total;
+            return total + valorAporte;
         }, 0);
     }, [accounts, investments]);
 
@@ -1030,6 +993,63 @@ export const useFinanceData = () => {
         // Patrimônio = saldos das contas (valores ajustados) + investimentos futuros
         return totalAccountBalance + investmentsToAdd;
     }, [totalAccountBalance, investmentsToAdd]);
+
+    // DEBUG: log detalhado para diagnosticar divergências entre saldos ajustados e totalPatrimony
+    useEffect(() => {
+        try {
+            const accountAdjustmentDates = {};
+            accounts.forEach(account => {
+                const created = account.created_at ? parseISO(account.created_at) : null;
+                const updated = account.updated_at ? parseISO(account.updated_at) : null;
+                const hasAdjustment = updated && created && updated.getTime() > created.getTime();
+                accountAdjustmentDates[account.id] = hasAdjustment ? updated : null;
+            });
+
+            const adjustedDates = Object.values(accountAdjustmentDates).filter(d => d !== null);
+            const latestAdjustmentDate = adjustedDates.length > 0
+                ? new Date(Math.max(...adjustedDates.map(d => d.getTime())))
+                : null;
+
+            const allAccountsAdjusted = accounts.length > 0 && accounts.every(acc => accountAdjustmentDates[acc.id] !== null);
+
+            const investmentsCounted = investments.filter(inv => {
+                const valorAporte = Number(inv.valor_aporte || 0);
+                if (valorAporte === 0) return false;
+
+                let invTimestamp = null;
+                if (inv.created_at) {
+                    try { invTimestamp = parseISO(inv.created_at); } catch { invTimestamp = null; }
+                } else if (inv.data) {
+                    try { invTimestamp = parseISO(inv.data + 'T00:00:00'); } catch { invTimestamp = null; }
+                }
+
+                if (inv.instituicao_id) {
+                    const adj = accountAdjustmentDates[inv.instituicao_id];
+                    if (!adj) return true; // conta sem ajuste: soma sempre
+                    if (!invTimestamp) return false;
+                    return invTimestamp.getTime() > adj.getTime();
+                }
+
+                if (allAccountsAdjusted && latestAdjustmentDate && invTimestamp) {
+                    return invTimestamp.getTime() > latestAdjustmentDate.getTime();
+                }
+
+                return true;
+            });
+
+            const sumInvestmentsCounted = investmentsCounted.reduce((s, i) => s + (Number(i.valor_aporte || 0)), 0);
+
+            console.info('[Patrimonio Debug] totalAccountBalance=', totalAccountBalance.toFixed(2),
+                ' investmentsToAdd=', investmentsToAdd.toFixed(2),
+                ' sumInvestmentsCounted=', sumInvestmentsCounted.toFixed(2),
+                ' totalPatrimony=', totalPatrimony.toFixed(2),
+                ' allAccountsAdjusted=', allAccountsAdjusted,
+                ' latestAdjustmentDate=', latestAdjustmentDate ? latestAdjustmentDate.toISOString() : null);
+            console.table(investmentsCounted.map(i => ({ id: i.id, instituicao_id: i.instituicao_id, data: i.data, created_at: i.created_at, timestampUsed: i.created_at || (i.data ? (i.data + 'T00:00:00') : null), valor_aporte: Number(i.valor_aporte || 0) })));
+        } catch (e) {
+            console.error('Erro debug patrimônio:', e);
+        }
+    }, [accounts, investments, totalAccountBalance, investmentsToAdd, totalPatrimony]);
 
     // Computed values para receitas
     const totalIncome = useMemo(() => {
