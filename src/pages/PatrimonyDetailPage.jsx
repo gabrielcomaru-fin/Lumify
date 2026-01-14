@@ -129,7 +129,7 @@ const DetailItem = ({ name, value, percentage, icon: Icon, isNegative, badge }) 
 );
 
 export function PatrimonyDetailPage() {
-  const { accounts, investments, categories, totalPatrimony, totalAccountBalance, incomes } = useFinance();
+  const { accounts, investments, categories, totalPatrimony, totalAccountBalance, incomes, expenses } = useFinance();
   const [activeTab, setActiveTab] = useState('visao-geral');
 
   // Categorias de investimento
@@ -260,15 +260,31 @@ export function PatrimonyDetailPage() {
 
   // Cálculo de meses de despesas cobertas pela reserva
   const monthsCovered = useMemo(() => {
-    // Calcular média de gastos mensais (simplificado - usar total de gastos do contexto seria mais preciso)
-    const totalMonthlyIncome = incomes.reduce((sum, inc) => sum + (Number(inc.valor) || 0), 0);
-    // Estimativa: gastos mensais = 70% da renda (regra comum de planejamento)
-    const estimatedMonthlyExpenses = totalMonthlyIncome * 0.7 || 5000; // fallback de R$ 5.000
-    
-    return emergencyReserveData.total > 0 
-      ? emergencyReserveData.total / (estimatedMonthlyExpenses / 12 * 12) * 12 
-      : 0;
-  }, [emergencyReserveData.total, incomes]);
+    // Calcular média de gastos mensais usando despesas pagas dos últimos 6 meses
+    if (!expenses || expenses.length === 0) return 0;
+
+    // Agrupar despesas pagas por mês (YYYY-MM)
+    const monthSums = {};
+    expenses.filter(exp => exp.pago).forEach(exp => {
+      if (!exp.data) return;
+      const d = new Date(exp.data + 'T00:00:00');
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthSums[key] = (monthSums[key] || 0) + (Number(exp.valor) || 0);
+    });
+
+    // Considerar janela dos últimos 6 meses (inclui meses com 0 gasto)
+    const now = new Date();
+    const monthsWindow = [];
+    for (let i = 5; i >= 0; i--) {
+      const m = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthsWindow.push(`${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`);
+    }
+
+    const sums = monthsWindow.map(k => monthSums[k] || 0);
+    const avgMonthlyExpenses = sums.reduce((a, b) => a + b, 0) / monthsWindow.length;
+
+    return avgMonthlyExpenses > 0 ? emergencyReserveData.total / avgMonthlyExpenses : 0;
+  }, [emergencyReserveData.total, expenses]);
 
   // Dados para gráficos
   const institutionChartData = useMemo(() => 
