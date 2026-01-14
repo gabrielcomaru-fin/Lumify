@@ -24,9 +24,11 @@ import {
   Info,
   CheckCircle2,
   Target,
-  Coins
+  Coins,
+  Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PatrimonyTimeline from '@/components/PatrimonyTimeline';
 
 // Palavras-chave que indicam investimentos de reserva de emergência
 const EMERGENCY_RESERVE_KEYWORDS = [
@@ -394,7 +396,7 @@ export function PatrimonyDetailPage() {
 
         {/* Tabs de Navegação */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full md:w-auto grid-cols-3 md:grid-cols-3">
+          <TabsList className="grid w-full md:w-auto grid-cols-4 md:grid-cols-4">
             <TabsTrigger value="visao-geral" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Visão Geral</span>
@@ -409,6 +411,11 @@ export function PatrimonyDetailPage() {
               <Shield className="h-4 w-4" />
               <span className="hidden sm:inline">Reserva</span>
               <span className="sm:hidden">Reserva</span>
+            </TabsTrigger>
+            <TabsTrigger value="timeline" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Linha do Tempo</span>
+              <span className="sm:hidden">Timeline</span>
             </TabsTrigger>
           </TabsList>
 
@@ -507,60 +514,23 @@ export function PatrimonyDetailPage() {
               </Card>
             )}
 
-            {/* Composição Detalhada */}
+            {/* Composição do Patrimônio removida daqui — disponível em "Instituições" aba */}
+          </TabsContent>
+
+          {/* Linha do Tempo (Aportes e Ajustes) */}
+          <TabsContent value="timeline" className="mt-6 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                  Composição do Patrimônio
+                  <Clock className="h-5 w-5 text-primary" />
+                  Linha do Tempo
                 </CardTitle>
                 <CardDescription>
-                  Detalhamento de todos os seus ativos e passivos
+                  Histórico de aportes e ajustes de saldo por instituição
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {/* Ativos Positivos */}
-                  {positiveBalance > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-                        Ativos ({formatCurrency(positiveBalance)})
-                      </h4>
-                      <div className="space-y-2">
-                        {patrimonyByInstitution.filter(p => !p.isNegative && p.value > 0).map((item, index) => (
-                          <DetailItem
-                            key={item.id || index}
-                            name={item.name}
-                            value={item.value}
-                            percentage={totalPatrimony > 0 ? (item.value / totalPatrimony) * 100 : 0}
-                            icon={Landmark}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Investimentos por Categoria */}
-                  {investmentsByCategory.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-                        Investimentos por Categoria
-                      </h4>
-                      <div className="space-y-2">
-                        {investmentsByCategory.map((cat, index) => (
-                          <DetailItem
-                            key={cat.id || index}
-                            name={cat.name}
-                            value={cat.value}
-                            percentage={totalInvestments > 0 ? (cat.value / totalInvestments) * 100 : 0}
-                            icon={cat.isEmergencyReserve ? Shield : TrendingUp}
-                            badge={cat.isEmergencyReserve ? 'Reserva' : undefined}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <PatrimonyTimeline accounts={accounts} investments={investments} accountMap={accountMap} categoryMap={categoryMap} pageSize={10} />
               </CardContent>
             </Card>
           </TabsContent>
