@@ -8,8 +8,12 @@ export const config = {
     name: import.meta.env.VITE_APP_NAME || 'NovaFin',
     version: import.meta.env.VITE_APP_VERSION || '1.0.0',
     environment: import.meta.env.MODE,
-    // IMPORTANTE: Atualize VITE_REDIRECT_URL_BASE no .env com seu domínio de produção
-    redirectUrlBase: import.meta.env.VITE_REDIRECT_URL_BASE || 'http://localhost:5173',
+    // IMPORTANTE: Em produção, configure VITE_REDIRECT_URL_BASE=https://lumify.app.br no .env
+    // Fallback: localhost para desenvolvimento, lumify.app.br para produção
+    redirectUrlBase: import.meta.env.VITE_REDIRECT_URL_BASE || 
+      (import.meta.env.MODE === 'development' 
+        ? 'http://localhost:5173' 
+        : 'https://lumify.app.br'),
   }
 };
 
