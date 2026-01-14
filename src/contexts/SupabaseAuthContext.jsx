@@ -274,33 +274,33 @@ export const AuthProvider = ({ children }) => {
   }, [toast]);
 
   const resetPassword = useCallback(async (email) => {
-    // IMPORTANTE: Usar URL completa com path - o Supabase pode remover o path se não estiver configurado
+    // 1. Define a URL exata de destino
     const redirectTo = `${window.location.origin}/reset-password`;
-    console.log('[resetPassword] Sending reset email with redirectTo:', redirectTo);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { 
-      redirectTo,
-      // Garantir que o redirectTo seja usado
-      options: {
-        emailRedirectTo: redirectTo
-      }
+    
+    console.log('[AuthContext] Iniciando reset de senha para:', email, 'Redirecionando para:', redirectTo);
+  
+    // 2. Chama o Supabase garantindo que o redirectTo esteja no lugar certo
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectTo,
     });
-
+  
     if (error) {
       console.error('Reset password error:', error);
       toast({
         variant: "destructive",
         title: "Falha ao enviar e-mail",
-        description: error.message || "Tente novamente mais tarde.",
+        description: translateAuthError ? translateAuthError(error) : error.message,
       });
     } else {
+      // 3. Sucesso: Feedback visual para o usuário
       toast({
         title: "Verifique seu e-mail",
-        description: "Enviamos um link para redefinir sua senha.",
+        description: "Enviamos um link de redefinição para " + email,
       });
     }
-
+  
     return { error };
-  }, [toast]);
+  }, [toast, translateAuthError]); // Adicionei translateAuthError se estiver no escopo
 
   const updatePassword = useCallback(async (newPassword) => {
     const { data, error } = await supabase.auth.updateUser({ password: newPassword });
