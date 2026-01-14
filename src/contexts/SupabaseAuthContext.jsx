@@ -34,7 +34,15 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  // Verificar sessionStorage IMEDIATAMENTE (marcado pelo main.jsx antes do React inicializar)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(() => {
+    const recoveryFlag = sessionStorage.getItem('supabase_password_recovery');
+    if (recoveryFlag === 'true') {
+      console.log('[AuthContext] Password recovery detected from sessionStorage (set by main.jsx)');
+      return true;
+    }
+    return false;
+  });
 
   const handleSession = useCallback(async (session) => {
     try {
@@ -251,6 +259,9 @@ export const AuthProvider = ({ children }) => {
 
   const clearPasswordRecovery = useCallback(() => {
     setIsPasswordRecovery(false);
+    // Limpar também o sessionStorage
+    sessionStorage.removeItem('supabase_password_recovery');
+    console.log('[AuthContext] Password recovery cleared');
   }, []);
 
   const value = useMemo(() => ({

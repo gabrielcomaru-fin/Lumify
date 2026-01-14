@@ -4,6 +4,26 @@ import App from '@/App';
 import '@/index.css';
 import { AuthProvider } from '@/contexts/SupabaseAuthContext';
 
+// CRÍTICO: Detectar recovery ANTES de qualquer coisa (antes do Supabase processar os tokens)
+// Isso precisa acontecer SINCRONAMENTE antes do React inicializar
+(function detectRecoveryEarly() {
+  const hash = window.location.hash;
+  const search = window.location.search;
+  
+  // Verificar se é um link de recovery (pode estar no hash ou query params)
+  const hashParams = new URLSearchParams(hash.substring(1));
+  const searchParams = new URLSearchParams(search);
+  
+  const type = hashParams.get('type') || searchParams.get('type');
+  const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+  
+  if (type === 'recovery' && accessToken) {
+    // Marcar no sessionStorage ANTES do Supabase processar
+    sessionStorage.setItem('supabase_password_recovery', 'true');
+    console.log('[main.jsx] Password recovery detected EARLY - marked in sessionStorage');
+  }
+})();
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
