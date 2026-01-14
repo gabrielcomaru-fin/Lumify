@@ -20,7 +20,9 @@ const GamificationPage = lazy(() => import('@/pages/GamificationPage').then(m =>
 const PatrimonyDetailPage = lazy(() => import('@/pages/PatrimonyDetailPage').then(m => ({ default: m.PatrimonyDetailPage })));
 import { MainLayout } from '@/components/MainLayout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ProtectedResetRoute } from '@/components/ProtectedResetRoute';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useRecoveryCheck } from '@/hooks/useRecoveryCheck';
 import { FinanceDataProvider } from '@/contexts/FinanceDataContext';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { GamificationProvider } from '@/contexts/GamificationContext';
@@ -28,6 +30,22 @@ import { Toaster } from '@/components/ui/toaster';
 
 function AppContent() {
   const { user, loading, signOut, isPasswordRecovery } = useAuth();
+  
+  // Hook que verifica recovery ANTES de qualquer coisa
+  const isInRecoveryMode = useRecoveryCheck() || isPasswordRecovery;
+  
+  // DEBUG: Log para diagnóstico
+  if (typeof window !== 'undefined') {
+    console.log('[AppContent] State:', {
+      user: !!user,
+      loading,
+      isPasswordRecovery,
+      isInRecoveryMode,
+      currentPath: window.location.pathname,
+      hash: window.location.hash.substring(0, 50),
+      sessionStorage: sessionStorage.getItem('supabase_password_recovery')
+    });
+  }
 
   if (loading) {
     return (
@@ -64,10 +82,14 @@ function AppContent() {
               </div>
             }>
             <Routes>
-              <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard" />} />
-              <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" />} />
-              <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/dashboard" />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/" element={!user || isInRecoveryMode ? <LandingPage /> : <Navigate to="/dashboard" />} />
+              <Route path="/login" element={!user || isInRecoveryMode ? <LoginPage /> : <Navigate to="/dashboard" />} />
+              <Route path="/register" element={!user || isInRecoveryMode ? <RegisterPage /> : <Navigate to="/dashboard" />} />
+              <Route path="/reset-password" element={
+                <ProtectedResetRoute>
+                  <ResetPasswordPage />
+                </ProtectedResetRoute>
+              } />
               
               <Route element={<MainLayout user={user} onLogout={signOut} />}>
                 <Route path="/dashboard" element={user ? <HomeSummaryPage /> : <Navigate to="/login" />} />
@@ -86,7 +108,7 @@ function AppContent() {
                 <Route path="/planos" element={user ? <PlansPage /> : <Navigate to="/login" />} />
               </Route>
               
-              <Route path="*" element={<Navigate to={user && !isPasswordRecovery ? "/dashboard" : "/"} />} />
+              <Route path="*" element={<Navigate to={user && !isInRecoveryMode ? "/dashboard" : "/"} />} />
             </Routes>
             </Suspense>
             </GamificationProvider>
