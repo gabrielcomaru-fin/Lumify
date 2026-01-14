@@ -18,7 +18,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
+    detectSessionInUrl: true, // Manter habilitado - vamos interceptar no onAuthStateChange
     flowType: 'pkce', // Mais seguro para SPAs
   },
   global: {

@@ -32,7 +32,14 @@ function AppContent() {
   const { user, loading, signOut, isPasswordRecovery } = useAuth();
   
   // Hook que verifica recovery ANTES de qualquer coisa
-  const isInRecoveryMode = useRecoveryCheck() || isPasswordRecovery;
+  const recoveryFromHook = useRecoveryCheck();
+  
+  // Verificação adicional: se estamos em /reset-password e há sessão recente, pode ser recovery
+  const isOnResetPage = typeof window !== 'undefined' && window.location.pathname === '/reset-password';
+  const recoveryTime = typeof window !== 'undefined' ? sessionStorage.getItem('recovery_session_time') : null;
+  const recentRecovery = recoveryTime && (Date.now() - parseInt(recoveryTime)) < 30000; // 30 segundos
+  
+  const isInRecoveryMode = recoveryFromHook || isPasswordRecovery || (isOnResetPage && user && recentRecovery);
   
   // DEBUG: Log para diagnóstico
   if (typeof window !== 'undefined') {
@@ -40,10 +47,14 @@ function AppContent() {
       user: !!user,
       loading,
       isPasswordRecovery,
+      recoveryFromHook,
+      isOnResetPage,
+      recentRecovery,
       isInRecoveryMode,
       currentPath: window.location.pathname,
       hash: window.location.hash.substring(0, 50),
-      sessionStorage: sessionStorage.getItem('supabase_password_recovery')
+      sessionStorage: sessionStorage.getItem('supabase_password_recovery'),
+      recoveryTime
     });
   }
 
