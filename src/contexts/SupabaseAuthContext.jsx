@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   const handleSession = useCallback(async (session) => {
     try {
@@ -49,6 +50,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const getSession = async () => {
       try {
+        // Verificar se há tokens de recovery na URL ANTES de obter a sessão
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
+        const type = hashParams.get('type') || searchParams.get('type');
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Get session error:', error);
@@ -56,6 +62,12 @@ export const AuthProvider = ({ children }) => {
           return;
         }
         handleSession(session);
+        
+        // Se há um tipo de recovery na URL e uma sessão, marcar como recovery
+        if (type === 'recovery' && session) {
+          setIsPasswordRecovery(true);
+          console.log('Password recovery detected from URL');
+        }
       } catch (error) {
         console.error('Session initialization error:', error);
         setLoading(false);
@@ -67,6 +79,24 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
+        
+        // Detectar evento de password recovery
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsPasswordRecovery(true);
+          console.log('Password recovery event detected');
+        }
+        
+        // Também verificar na URL caso o evento não seja disparado
+        if (session) {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const searchParams = new URLSearchParams(window.location.search);
+          const type = hashParams.get('type') || searchParams.get('type');
+          if (type === 'recovery') {
+            setIsPasswordRecovery(true);
+            console.log('Password recovery detected from URL in auth change');
+          }
+        }
+        
         handleSession(session);
       }
     );
@@ -206,16 +236,22 @@ export const AuthProvider = ({ children }) => {
     return { data, error };
   }, [toast]);
 
+  const clearPasswordRecovery = useCallback(() => {
+    setIsPasswordRecovery(false);
+  }, []);
+
   const value = useMemo(() => ({
     user,
     session,
     loading,
+    isPasswordRecovery,
     signUp,
     signIn,
     signOut,
     resetPassword,
     updatePassword,
-  }), [user, session, loading, signUp, signIn, signOut, resetPassword, updatePassword]);
+    clearPasswordRecovery,
+  }), [user, session, loading, isPasswordRecovery, signUp, signIn, signOut, resetPassword, updatePassword, clearPasswordRecovery]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
