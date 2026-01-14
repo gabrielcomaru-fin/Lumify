@@ -60,26 +60,34 @@ export function ResetPasswordPage() {
     const searchParams = new URLSearchParams(window.location.search);
     const type = hashParams.get('type') || searchParams.get('type');
     const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+    const code = hashParams.get('code') || searchParams.get('code'); // PKCE flow usa 'code'
     const recoveryFromUrl = type === 'recovery' && accessToken;
+    const recoveryFromCode = code && (recoveryFromStorage || window.location.pathname === '/reset-password');
     
     console.log('[ResetPasswordPage] Checking recovery:', { 
       recoveryFromStorage, 
-      recoveryFromUrl, 
+      recoveryFromUrl,
+      recoveryFromCode,
+      hasCode: !!code,
       isPasswordRecovery, 
       user: !!user, 
-      loading 
+      loading,
+      pathname: window.location.pathname
     });
     
-    // Se há recovery no sessionStorage OU na URL, marcar como válido IMEDIATAMENTE
-    if (recoveryFromStorage || recoveryFromUrl) {
+    // Se há recovery no sessionStorage OU na URL OU há código (PKCE), marcar como válido IMEDIATAMENTE
+    if (recoveryFromStorage || recoveryFromUrl || recoveryFromCode) {
       setIsValidRecovery(true);
       setError(null); // Limpar qualquer erro anterior
-      console.log('[ResetPasswordPage] Recovery VALID - from', recoveryFromStorage ? 'sessionStorage' : 'URL');
+      console.log('[ResetPasswordPage] Recovery VALID - from', 
+        recoveryFromStorage ? 'sessionStorage' : 
+        recoveryFromCode ? 'code (PKCE)' : 
+        'URL');
       
       // Limpar a URL dos tokens se ainda existirem
-      if (window.location.hash && (hashParams.has('type') || hashParams.has('access_token'))) {
+      if (window.location.hash && (hashParams.has('type') || hashParams.has('access_token') || hashParams.has('code'))) {
         window.history.replaceState(null, '', window.location.pathname);
-      } else if (searchParams.has('type') || searchParams.has('access_token')) {
+      } else if (searchParams.has('type') || searchParams.has('access_token') || searchParams.has('code')) {
         window.history.replaceState(null, '', window.location.pathname);
       }
       return; // Não fazer mais verificações

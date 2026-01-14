@@ -40,20 +40,37 @@ import { AuthProvider } from '@/contexts/SupabaseAuthContext';
     return; // Não processar recovery se há erro
   }
   
-  // Verificar se é um link de recovery válido
+  // Verificar se há um código de autorização (PKCE flow)
+  const code = hashParams.get('code') || searchParams.get('code');
   const type = hashParams.get('type') || searchParams.get('type');
   const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
   
-  console.log('[main.jsx] Recovery check:', { type, hasAccessToken: !!accessToken, pathname });
+  console.log('[main.jsx] Recovery check:', { type, hasAccessToken: !!accessToken, hasCode: !!code, pathname, fullUrl });
+  
+  // CRÍTICO: Se há código na raiz, ASSUMIR que é recovery e redirecionar IMEDIATAMENTE
+  // O Supabase está redirecionando para / ao invés de /reset-password
+  // Precisamos interceptar ANTES do Supabase processar o código
+  if (code && pathname === '/') {
+    console.log('[main.jsx] 🔄 Code detected on root - ASSUMING recovery and redirecting IMMEDIATELY');
+    // Marcar como recovery ANTES de redirecionar
+    sessionStorage.setItem('supabase_password_recovery', 'true');
+    sessionStorage.setItem('recovery_session_time', Date.now().toString());
+    sessionStorage.setItem('recovery_code', code);
+    sessionStorage.setItem('recovery_original_url', fullUrl);
+    // Redirecionar IMEDIATAMENTE para /reset-password mantendo o código
+    window.location.replace(`/reset-password?code=${code}`);
+    return; // Não continuar execução - vamos recarregar na página correta
+  }
   
   // Se estamos em /reset-password OU há tokens de recovery, marcar como recovery
-  if ((type === 'recovery' && accessToken) || (pathname === '/reset-password' && (hash.includes('type=recovery') || search.includes('type=recovery')))) {
+  if ((type === 'recovery' && accessToken) || (pathname === '/reset-password' && (code || hash.includes('type=recovery') || search.includes('type=recovery')))) {
     // Marcar no sessionStorage ANTES do Supabase processar
     sessionStorage.setItem('supabase_password_recovery', 'true');
     sessionStorage.setItem('recovery_session_time', Date.now().toString());
+    if (code) sessionStorage.setItem('recovery_code', code);
     // Salvar URL completa para referência
     sessionStorage.setItem('recovery_original_url', fullUrl);
-    console.log('[main.jsx] ✅ Password recovery detected EARLY - marked in sessionStorage');
+    console.log('[main.jsx] ✅ Password recovery detected EARLY - marked in sessionStorage', { code: !!code, type });
   } else {
     console.log('[main.jsx] ❌ No recovery detected');
   }
