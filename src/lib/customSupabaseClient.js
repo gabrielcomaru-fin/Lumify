@@ -13,12 +13,26 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// Verificar se há código na raiz ANTES de criar o cliente
+// Se houver, pode ser recovery que foi redirecionado incorretamente
+const hasCodeOnRoot = typeof window !== 'undefined' && 
+  window.location.pathname === '/' && 
+  (window.location.search.includes('code=') || window.location.hash.includes('code='));
+
+// Se há código na raiz, desabilitar detectSessionInUrl temporariamente
+// para termos controle sobre quando processar
+const detectSessionInUrl = !hasCodeOnRoot;
+
+if (hasCodeOnRoot) {
+  console.log('[customSupabaseClient] Code detected on root - disabling auto session detection');
+}
+
 // Configurações de cliente otimizadas
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true, // Manter habilitado - vamos interceptar no onAuthStateChange
+    detectSessionInUrl: detectSessionInUrl, // Desabilitar se há código na raiz
     flowType: 'pkce', // Mais seguro para SPAs
   },
   global: {

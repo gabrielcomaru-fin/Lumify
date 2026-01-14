@@ -130,21 +130,46 @@ export const AuthProvider = ({ children }) => {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const searchParams = new URLSearchParams(window.location.search);
           const type = hashParams.get('type') || searchParams.get('type');
+          const code = hashParams.get('code') || searchParams.get('code');
           
-          if (type === 'recovery') {
+          // Verificar sessionStorage também
+          const recoveryFromStorage = sessionStorage.getItem('supabase_password_recovery') === 'true';
+          
+          if (type === 'recovery' || code || recoveryFromStorage) {
             setIsPasswordRecovery(true);
             sessionStorage.setItem('supabase_password_recovery', 'true');
             sessionStorage.setItem('recovery_session_time', Date.now().toString());
-            console.log('[AuthContext] ✅ Recovery detected from URL in auth change');
+            console.log('[AuthContext] ✅ Recovery detected from URL/storage in auth change', { type, hasCode: !!code, fromStorage: recoveryFromStorage });
           } else {
-            // Verificar se a sessão foi criada recentemente (últimos 10 segundos)
+            // Verificar se a sessão foi criada recentemente (últimos 30 segundos)
             const recoveryTime = sessionStorage.getItem('recovery_session_time');
             if (recoveryTime) {
               const timeDiff = Date.now() - parseInt(recoveryTime);
-              if (timeDiff < 10000) { // 10 segundos
+              if (timeDiff < 30000) { // 30 segundos
                 setIsPasswordRecovery(true);
                 console.log('[AuthContext] ✅ Recovery detected from recent session timestamp');
               }
+            }
+          }
+        }
+        
+        // Se há código na URL e sessão foi criada, pode ser recovery mesmo que não estejamos em /reset-password ainda
+        if (session && event === 'SIGNED_IN') {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const searchParams = new URLSearchParams(window.location.search);
+          const code = hashParams.get('code') || searchParams.get('code');
+          const recoveryFromStorage = sessionStorage.getItem('supabase_password_recovery') === 'true';
+          
+          if (code || recoveryFromStorage) {
+            setIsPasswordRecovery(true);
+            sessionStorage.setItem('supabase_password_recovery', 'true');
+            sessionStorage.setItem('recovery_session_time', Date.now().toString());
+            console.log('[AuthContext] ✅ Recovery detected from SIGNED_IN event', { hasCode: !!code, fromStorage: recoveryFromStorage });
+            
+            // Se estamos na raiz e há código, redirecionar para /reset-password
+            if (code && window.location.pathname === '/') {
+              console.log('[AuthContext] Redirecting to /reset-password');
+              window.location.replace(`/reset-password?code=${code}`);
             }
           }
         }
@@ -249,8 +274,16 @@ export const AuthProvider = ({ children }) => {
   }, [toast]);
 
   const resetPassword = useCallback(async (email) => {
+    // IMPORTANTE: Usar URL completa com path - o Supabase pode remover o path se não estiver configurado
     const redirectTo = `${window.location.origin}/reset-password`;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    console.log('[resetPassword] Sending reset email with redirectTo:', redirectTo);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { 
+      redirectTo,
+      // Garantir que o redirectTo seja usado
+      options: {
+        emailRedirectTo: redirectTo
+      }
+    });
 
     if (error) {
       console.error('Reset password error:', error);
