@@ -48,13 +48,26 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // Verificar IMEDIATAMENTE se há tokens de recovery na URL (síncrono, antes de qualquer async)
+    const checkRecoveryInUrl = () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const searchParams = new URLSearchParams(window.location.search);
+      const type = hashParams.get('type') || searchParams.get('type');
+      const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+      
+      if (type === 'recovery' && accessToken) {
+        setIsPasswordRecovery(true);
+        console.log('Password recovery detected IMMEDIATELY from URL');
+        return true;
+      }
+      return false;
+    };
+
+    // Verificar recovery na URL ANTES de qualquer outra coisa
+    const hasRecoveryInUrl = checkRecoveryInUrl();
+
     const getSession = async () => {
       try {
-        // Verificar se há tokens de recovery na URL ANTES de obter a sessão
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const searchParams = new URLSearchParams(window.location.search);
-        const type = hashParams.get('type') || searchParams.get('type');
-        
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Get session error:', error);
@@ -64,9 +77,9 @@ export const AuthProvider = ({ children }) => {
         handleSession(session);
         
         // Se há um tipo de recovery na URL e uma sessão, marcar como recovery
-        if (type === 'recovery' && session) {
+        if (hasRecoveryInUrl && session) {
           setIsPasswordRecovery(true);
-          console.log('Password recovery detected from URL');
+          console.log('Password recovery confirmed with session');
         }
       } catch (error) {
         console.error('Session initialization error:', error);

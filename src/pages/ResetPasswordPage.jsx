@@ -19,28 +19,33 @@ export function ResetPasswordPage() {
 
   // Verificar se é um link válido de recovery
   useEffect(() => {
-    if (loading) return;
-
-    // Verificar se há tokens de recovery na URL (hash ou query params)
+    // Verificar PRIMEIRO se há tokens de recovery na URL (antes de qualquer outra coisa)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const searchParams = new URLSearchParams(window.location.search);
     const type = hashParams.get('type') || searchParams.get('type');
     const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
     
-    // Verificar se é um recovery válido através do evento ou da URL
-    // O Supabase pode processar os tokens automaticamente, então verificamos ambos
-    const hasRecoveryToken = type === 'recovery' || isPasswordRecovery;
-    const hasTokens = !!accessToken || !!hashParams.get('refresh_token') || !!searchParams.get('refresh_token');
-    
-    if (hasRecoveryToken && user) {
-      // Se temos um usuário autenticado e é um recovery, permitir alteração
+    // Se há tokens de recovery na URL, marcar como válido IMEDIATAMENTE
+    if (type === 'recovery' && accessToken) {
       setIsValidRecovery(true);
-      // Limpar a URL dos tokens após detectar (se ainda existirem)
+      // Limpar a URL dos tokens após detectar
       if (window.location.hash && (hashParams.has('type') || hashParams.has('access_token'))) {
         window.history.replaceState(null, '', window.location.pathname);
       } else if (searchParams.has('type') || searchParams.has('access_token')) {
         window.history.replaceState(null, '', window.location.pathname);
       }
+      return; // Não fazer mais verificações se já detectamos recovery na URL
+    }
+
+    if (loading) return;
+
+    // Verificar se é um recovery válido através do evento ou da URL
+    // O Supabase pode processar os tokens automaticamente, então verificamos ambos
+    const hasRecoveryToken = type === 'recovery' || isPasswordRecovery;
+    
+    if (hasRecoveryToken && user) {
+      // Se temos um usuário autenticado e é um recovery, permitir alteração
+      setIsValidRecovery(true);
     } else if (!loading) {
       // Se não é um recovery válido e não está carregando, verificar se deve redirecionar
       if (!hasRecoveryToken && user) {

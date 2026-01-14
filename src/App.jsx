@@ -27,7 +27,7 @@ import { GamificationProvider } from '@/contexts/GamificationContext';
 import { Toaster } from '@/components/ui/toaster';
 
 function AppContent() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, isPasswordRecovery } = useAuth();
 
   if (loading) {
     return (
@@ -86,7 +86,7 @@ function AppContent() {
                 <Route path="/planos" element={user ? <PlansPage /> : <Navigate to="/login" />} />
               </Route>
               
-              <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} />} />
+              <Route path="*" element={<Navigate to={user && !isPasswordRecovery ? "/dashboard" : "/"} />} />
             </Routes>
             </Suspense>
             </GamificationProvider>
