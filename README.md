@@ -2,6 +2,8 @@
 
 Um aplicativo moderno para gerenciamento de finanças pessoais, construído com React, Vite, Tailwind CSS e Supabase.
 
+🌐 **Acesse em produção:** [https://lumify.app.br](https://lumify.app.br)
+
 ## 🚀 Funcionalidades
 
 - **Dashboard Inteligente**: KPIs relevantes e dicas personalizadas
@@ -62,6 +64,7 @@ VITE_APP_ENVIRONMENT=development
 # URLs de redirecionamento
 # IMPORTANTE: Atualize com seu domínio de produção antes do deploy
 # Produção: VITE_REDIRECT_URL_BASE=https://lumify.app.br
+# Desenvolvimento: VITE_REDIRECT_URL_BASE=http://localhost:5173
 VITE_REDIRECT_URL_BASE=http://localhost:5173
 
 # Base path do Vite (opcional, padrão: '/')
