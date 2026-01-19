@@ -61,8 +61,8 @@ export const useIncomeInsights = () => {
     
     // Status de saúde financeira
     const isBalanceHealthy = currentMonthAvailableBalance > (totalCurrentMonthIncome * 0.2); // 20% das receitas
-    const needsMoreIncome = totalCurrentMonthIncome < (totalCurrentMonthExpenses + totalCurrentMonthInvestments);
-    const isSpendingTooMuch = incomeVsExpensesRatio > 100; // Gastando mais que recebe
+    const needsMoreIncome = totalCurrentMonthIncome < totalCurrentMonthExpenses;
+    const isSpendingTooMuch = incomeVsExpensesRatio < 100; // Gastando mais que recebe
     
     // Recomendações baseadas nos dados
     const recommendations = [];
