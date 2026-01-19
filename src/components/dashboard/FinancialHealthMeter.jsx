@@ -473,14 +473,14 @@ const FinancialHealthMeter = memo(function FinancialHealthMeter({ showBreakdownO
                       />
                       <div className="text-xs text-muted-foreground space-y-1">
                         <p>
-                          <strong>Fórmula:</strong> (Categorias Únicas ÷ Total de Investimentos) × 100 × 0.2
+                          <strong>Fórmula:</strong> (Categorias Únicas ÷ 6) × 100 × 0.7 + Distribuição × 0.3 × 0.2
                         </p>
                         <p className="font-mono bg-background/50 p-1.5 rounded">
-                          ({scoreBreakdown.categoryCount} categorias ÷ {scoreBreakdown.totalInvestmentsCount} aportes) × 100 × 0.2 
+                          {scoreBreakdown.categoryCount} categorias únicas
                           = <strong>{scoreBreakdown.diversificationPoints} pts</strong>
                         </p>
                         <p className="text-primary/80">
-                          💡 {scoreBreakdown.categoryCount} categoria(s) diferentes em {scoreBreakdown.totalInvestmentsCount} aporte(s)
+                          💡 {scoreBreakdown.categoryCount === 1 ? 'Comece com mais categorias' : scoreBreakdown.categoryCount >= 6 ? 'Excelente diversificação!' : 'Boa diversificação!'}
                         </p>
                       </div>
                     </div>

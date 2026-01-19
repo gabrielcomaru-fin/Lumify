@@ -34,11 +34,37 @@ export const useAdvancedMetrics = () => {
   const calculateDiversification = (investmentList) => {
     if (investmentList.length === 0) return 0;
     
+    // Calcular número de categorias únicas
     const categoryCount = new Set(investmentList.map(inv => inv.categoria_id)).size;
-    const totalInvestments = investmentList.length;
     
-    // Score de diversificação baseado no número de categorias únicas
-    return Math.min((categoryCount / totalInvestments) * 100, 100);
+    // Calcular total de investimentos por categoria para avaliar distribuição
+    const categoryTotals = {};
+    let totalValue = 0;
+    
+    investmentList.forEach(inv => {
+      const catId = inv.categoria_id;
+      categoryTotals[catId] = (categoryTotals[catId] || 0) + inv.valor_aporte;
+      totalValue += inv.valor_aporte;
+    });
+    
+    if (totalValue === 0) return 0;
+    
+    // Score baseado no número de categorias (0-100)
+    // Com benchmark: "bom" = 4.5 categorias, "excelente" = 6 categorias
+    const categoryScore = Math.min((categoryCount / 6) * 100, 100);
+    
+    // Score de distribuição (penaliza concentração)
+    // Se uma categoria tem mais de 50% do total, reduz o score
+    let distributionScore = 100;
+    Object.values(categoryTotals).forEach(catValue => {
+      const percentage = (catValue / totalValue) * 100;
+      if (percentage > 50) {
+        distributionScore *= (1 - (percentage - 50) / 100);
+      }
+    });
+    
+    // Resultado final: 70% peso para número de categorias + 30% para distribuição
+    return (categoryScore * 0.7) + (distributionScore * 0.3);
   };
 
   // Calcular eficiência orçamentária
