@@ -4,7 +4,8 @@ import { Input, CurrencyInput } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, TrendingUp, Target, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Plus, TrendingUp, Target, ShieldCheck, HelpCircle, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceDataContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -94,6 +95,38 @@ export function InvestmentForm({ onSubmit, investmentToEdit, onOpenChange, isOpe
       toast({
         title: "Erro",
         description: "Informe um valor de aporte válido maior que zero.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (investmentCategories.length === 0) {
+      toast({
+        title: "Categoria necessária",
+        description: "Cadastre pelo menos uma categoria de investimento nas Configurações antes de registrar um aporte.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (!formData.categoria_id) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma categoria de investimento.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (accounts.length === 0) {
+      toast({
+        title: "Instituição financeira necessária",
+        description: "Cadastre pelo menos uma instituição financeira em Contas antes de registrar um aporte.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (!formData.instituicao_id) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma instituição financeira para o aporte.",
         variant: "destructive"
       });
       return;
@@ -219,7 +252,15 @@ export function InvestmentForm({ onSubmit, investmentToEdit, onOpenChange, isOpe
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhuma categoria de investimento disponível.</p>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/50 p-3">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      Cadastre uma categoria de investimento primeiro
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      Vá em <Link to="/configuracoes" className="underline font-medium hover:text-amber-900 dark:hover:text-amber-100">Configurações</Link> para criar categorias.
+                    </p>
+                  </div>
                 )}
               </div>
               
@@ -243,7 +284,15 @@ export function InvestmentForm({ onSubmit, investmentToEdit, onOpenChange, isOpe
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhuma instituição financeira disponível.</p>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/50 p-3">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      Cadastre uma instituição financeira primeiro
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      Vá em <Link to="/contas" className="underline font-medium hover:text-amber-900 dark:hover:text-amber-100">Contas</Link> para adicionar banco, corretora, etc.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

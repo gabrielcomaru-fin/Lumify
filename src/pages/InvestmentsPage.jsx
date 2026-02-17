@@ -301,7 +301,12 @@ export function InvestmentsPage() {
       setIsFormOpen(false);
       setInvestmentToEdit(null);
     } catch (error) {
-      toast({ title: 'Erro ao salvar aporte', description: error.message, variant: 'destructive' });
+      const msg = error?.message || '';
+      const isInstituicaoError = /instituicao|contas_bancarias|foreign key|uuid|referência|reference/i.test(msg);
+      const desc = isInstituicaoError
+        ? 'Cadastre pelo menos uma instituição financeira em Contas antes de registrar aportes.'
+        : (msg || 'Tente novamente.');
+      toast({ title: 'Erro ao salvar aporte', description: desc, variant: 'destructive' });
     }
   };
 

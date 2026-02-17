@@ -219,9 +219,9 @@ export function ExpensesPage() {
     if (selectedCount === 0) return;
     try {
       for (const id of selectedIds) {
-        await toggleExpensePayment(id);
+        await updateExpense(id, { pago: true });
       }
-      toast({ title: 'Atualização concluída', description: `${selectedCount} lançamento(s) atualizados` });
+      toast({ title: 'Atualização concluída', description: `${selectedCount} lançamento(s) marcados como pagos` });
       setSelectedIds([]);
     } catch (error) {
       toast({ title: 'Erro ao atualizar em lote', description: error.message, variant: 'destructive' });
@@ -253,7 +253,12 @@ export function ExpensesPage() {
       setIsFormOpen(false);
       setExpenseToEdit(null);
     } catch (error) {
-      toast({ title: 'Erro ao salvar despesa', description: error.message, variant: 'destructive' });
+      const msg = error?.message || '';
+      const isCategoriaError = /categoria|categorias|foreign key|uuid|referência|reference|inválido/i.test(msg);
+      const desc = isCategoriaError
+        ? 'Cadastre pelo menos uma categoria de gasto nas Configurações antes de adicionar despesas.'
+        : (msg || 'Tente novamente.');
+      toast({ title: 'Erro ao salvar despesa', description: desc, variant: 'destructive' });
     }
   };
 
