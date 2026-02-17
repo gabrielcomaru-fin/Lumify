@@ -4,7 +4,8 @@ import { Input, CurrencyInput } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Receipt, Repeat, DollarSign } from 'lucide-react';
+import { Plus, Receipt, Repeat, DollarSign, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceDataContext';
 
 export function ExpenseForm({ onSubmit, expenseToEdit, onOpenChange, isOpen }) {
@@ -72,8 +73,12 @@ export function ExpenseForm({ onSubmit, expenseToEdit, onOpenChange, isOpen }) {
       return;
     }
 
+    if (expenseCategories.length === 0) {
+      setErrorMessage('Cadastre pelo menos uma categoria de gasto nas Configurações antes de adicionar despesas.');
+      return;
+    }
     if (!formData.categoria_id) {
-      setErrorMessage('Por favor, selecione uma categoria para a despesa.');
+      setErrorMessage('Selecione uma categoria para a despesa.');
       return;
     }
 
@@ -177,7 +182,15 @@ export function ExpenseForm({ onSubmit, expenseToEdit, onOpenChange, isOpen }) {
                 )}
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">Nenhuma categoria de gasto disponível.</p>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/50 p-3">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  Cadastre uma categoria de gasto primeiro
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  Vá em <Link to="/configuracoes" className="underline font-medium hover:text-amber-900 dark:hover:text-amber-100">Configurações</Link> para criar categorias.
+                </p>
+              </div>
             )}
           </div>
           <div className="space-y-3">
