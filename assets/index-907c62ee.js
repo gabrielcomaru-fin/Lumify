@@ -1,0 +1,1 @@
+import{ah as v,ai as t}from"./index-f35660c7.js";function g(s){v(1,arguments);var r=s||{},a=t(r.start),o=t(r.end),n=o.getTime(),i=[];if(!(a.getTime()<=n))throw new RangeError("Invalid interval");var e=a;for(e.setHours(0,0,0,0),e.setDate(1);e.getTime()<=n;)i.push(t(e)),e.setMonth(e.getMonth()+1);return i}export{g as e};
