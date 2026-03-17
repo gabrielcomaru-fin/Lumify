@@ -8,10 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LineChart, Zap, Target, PiggyBank, BarChart } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { useFinance } from '@/contexts/FinanceDataContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { UpgradeCTA } from '@/components/UpgradeCTA';
 import { format } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function InvestmentProjectionPage() {
+    const { canAccessProjection } = useSubscription();
     const { investments, accounts, investmentGoal } = useFinance();
 
     // Patrimônio atual: usar saldo das contas (evita inflar com soma histórica de aportes)
@@ -551,6 +554,23 @@ export function InvestmentProjectionPage() {
         calculateSimple();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [simpleRisk, simpleHorizon, currentPortfolioBalance, averageMonthlyInvestment, investmentGoal]);
+
+    if (!canAccessProjection) {
+        return (
+            <>
+                <Helmet>
+                    <title>Projeção de Investimentos - Lumify</title>
+                </Helmet>
+                <div className="space-y-4 page-top">
+                    <h1 className="text-2xl font-bold tracking-tight">Projeção de Investimentos</h1>
+                    <UpgradeCTA
+                        title="Projeções de investimento avançadas"
+                        description="Recurso exclusivo do plano Premium. Simule o crescimento do seu patrimônio com cenários, metas e visualizações de longo prazo."
+                    />
+                </div>
+            </>
+        );
+    }
 
     return (
         <>

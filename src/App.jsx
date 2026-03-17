@@ -27,6 +27,7 @@ import { ProtectedResetRoute } from '@/components/ProtectedResetRoute';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { useRecoveryCheck } from '@/hooks/useRecoveryCheck';
 import { FinanceDataProvider } from '@/contexts/FinanceDataContext';
+import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { GamificationProvider } from '@/contexts/GamificationContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -76,6 +77,7 @@ function AppContent() {
       <ErrorBoundary>
         <Router>
           <FinanceDataProvider>
+            <SubscriptionProvider>
             <GamificationProvider>
             <Suspense fallback={
               <div className="min-h-screen flex items-center justify-center bg-background">
@@ -118,6 +120,7 @@ function AppContent() {
             </Routes>
             </Suspense>
             </GamificationProvider>
+            </SubscriptionProvider>
           </FinanceDataProvider>
         </Router>
       </ErrorBoundary>

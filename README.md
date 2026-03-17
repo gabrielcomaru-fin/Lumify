@@ -84,6 +84,9 @@ VITE_BASE_PATH=/
 npm run check:env
 ```
 
+**Deploy (Vercel ou outro host) – uma única vez:**  
+Mantenha todas as variáveis no `.env`. Na Vercel: **Project → Settings → Environment Variables** → use **"Import .env"** (ou cole o conteúdo do `.env` em lote). Assim você sobe tudo de uma vez e, ao trocar de hospedagem, basta importar o mesmo `.env` no novo painel.
+
 ### 4. Configure o banco de dados
 
 Execute os seguintes comandos SQL no editor SQL do Supabase:
