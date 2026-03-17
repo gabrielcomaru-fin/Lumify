@@ -7,8 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calculator, LineChart, Target, PiggyBank } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { UpgradeCTA } from '@/components/UpgradeCTA';
 
 export function CalculatorPage() {
+  const { canAccessCalculator } = useSubscription();
   const [calcData, setCalcData] = useState({
     initialAmount: '',
     monthlyContribution: '',
@@ -67,6 +70,23 @@ export function CalculatorPage() {
     setChartData(newChartData);
   };
 
+  if (!canAccessCalculator) {
+    return (
+      <>
+        <Helmet>
+          <title>Calculadora de Juros Compostos - Lumify</title>
+        </Helmet>
+        <div className="space-y-4 page-top">
+          <h1 className="text-2xl font-bold tracking-tight">Calculadora de Juros Compostos</h1>
+          <UpgradeCTA
+            title="Simulador de juros compostos"
+            description="Recurso exclusivo do plano Premium. Assine para simular o crescimento dos seus investimentos com projeções detalhadas e gráficos."
+          />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Helmet>
@@ -75,7 +95,7 @@ export function CalculatorPage() {
       </Helmet>
       <div className="space-y-4 md:space-y-5 page-top">
         <h1 className="text-2xl font-bold tracking-tight">Calculadora de Juros Compostos</h1>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Calculator className="text-primary"/>Simulador de Juros Compostos</CardTitle>

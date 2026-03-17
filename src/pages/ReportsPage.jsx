@@ -11,6 +11,8 @@ import { useSmartInsights } from '@/hooks/useSmartInsights';
 import { usePersonalizedReports } from '@/hooks/usePersonalizedReports';
 import { useScenarioAnalysis } from '@/hooks/useScenarioAnalysis';
 import { useAdvancedExport } from '@/hooks/useAdvancedExport';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useToast } from '@/components/ui/use-toast';
 import { CompactPeriodFilter } from '@/components/CompactPeriodFilter';
 import { CompactHeader } from '@/components/CompactHeader';
 import { ExpenseTrendChart } from '@/components/charts/ExpenseTrendChart';
@@ -33,9 +35,10 @@ import {
 
 const ReportsPage = memo(function ReportsPage() {
   const { expenses, investments, categories, accounts, investmentGoal, loading, incomes } = useFinance();
+  const { canExportReports } = useSubscription();
   const incomeInsights = useIncomeInsights();
   const { isExporting, exportFullReport, exportExpenses, exportInvestments, exportAccounts } = useExport();
-  
+
   // Novos hooks para relatórios avançados
   const { financialHealth, trends } = useAdvancedMetrics();
   const { insights, recommendations } = useSmartInsights();
@@ -119,7 +122,17 @@ const ReportsPage = memo(function ReportsPage() {
     exportFullReport(filteredExpenses, filteredInvestments, accounts, categories, periodLabel, 'PDF');
   };
 
+  const { toast } = useToast();
+
   const handleAdvancedExport = async (format) => {
+    if ((format === 'PDF' || format === 'CSV') && !canExportReports) {
+      toast({
+        variant: 'destructive',
+        title: 'Recurso Premium',
+        description: 'Exportação em PDF e CSV está disponível no plano Premium. Acesse Planos para fazer upgrade.',
+      });
+      return;
+    }
     const reportData = {
       expenses: filteredExpenses,
       investments: filteredInvestments,
@@ -143,7 +156,11 @@ const ReportsPage = memo(function ReportsPage() {
       }
     } catch (error) {
       console.error('Erro ao exportar:', error);
-      alert('Erro ao exportar relatório. Tente novamente.');
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao exportar',
+        description: 'Tente novamente.',
+      });
     }
   };
 
@@ -194,8 +211,12 @@ const ReportsPage = memo(function ReportsPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleAdvancedExport('PDF')}>Relatório Completo (PDF)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleAdvancedExport('CSV')}>Dados Completos (CSV)</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAdvancedExport('PDF')} disabled={!canExportReports}>
+                  Relatório Completo (PDF){!canExportReports ? ' — Premium' : ''}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAdvancedExport('CSV')} disabled={!canExportReports}>
+                  Dados Completos (CSV){!canExportReports ? ' — Premium' : ''}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleAdvancedExport('JSON')}>Dados Estruturados (JSON)</DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportReport}>Relatório Básico (PDF)</DropdownMenuItem>
               </DropdownMenuContent>

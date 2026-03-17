@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { CurrencyInput, Input } from '@/components/ui/input';
@@ -6,11 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, CreditCard, Building, Edit, Trash2 } from 'lucide-react';
+import { Plus, CreditCard, Building, Edit, Trash2, Star } from 'lucide-react';
 import { useFinance } from '@/contexts/FinanceDataContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 export function AccountForm() {
   const { addAccount, accounts, updateAccount, deleteAccount } = useFinance();
+  const { canAddAccount } = useSubscription();
+  const freeLimitReached = !canAddAccount && accounts.length >= 1;
   const [formData, setFormData] = useState({
     nome_banco: '',
     saldo: '',
@@ -29,7 +33,16 @@ export function AccountForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    if (!editingAccount && freeLimitReached) {
+      toast({
+        title: 'Limite do plano Free',
+        description: 'O plano Free permite 1 conta. Faça upgrade para adicionar mais.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!formData.nome_banco || !formData.saldo) {
       toast({
         title: "Erro",
@@ -119,7 +132,7 @@ export function AccountForm() {
     <div className="space-y-6">
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <Button>
+          <Button disabled={freeLimitReached}>
             <Plus className="w-4 h-4 mr-2" />
             Nova Instituição
           </Button>
@@ -174,6 +187,11 @@ export function AccountForm() {
             Suas Instituições
           </CardTitle>
           <CardDescription>Patrimônio por instituição financeira</CardDescription>
+          {freeLimitReached && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Plano Free: 1 conta. <Link to="/planos" className="text-primary font-medium inline-flex items-center gap-1"><Star className="h-3 w-3" /> Fazer upgrade</Link> para múltiplas contas.
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           {accounts.length === 0 ? (
