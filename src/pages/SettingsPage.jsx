@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -750,56 +751,10 @@ function PaymentMethodsManager() {
 
 // Componente para planos e assinatura
 function PlansSettings() {
-  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const plans = [
-    {
-      name: 'Free',
-      price: 'R$0',
-      description: 'O essencial para começar a organizar suas finanças.',
-      features: [
-        'Controle de gastos básico',
-        'Cadastro de 1 conta bancária',
-        'Visão geral no dashboard',
-      ],
-      cta: 'Seu plano atual',
-      isCurrent: true,
-    },
-    {
-      name: 'Pro',
-      price: 'R$9,90',
-      priceSuffix: '/mês',
-      description: 'Ferramentas poderosas para otimizar seus resultados.',
-      features: [
-        'Tudo do plano Free',
-        'Múltiplas contas bancárias',
-        'Metas de aporte personalizadas',
-        'Teto de gastos por categoria',
-        'Dicas financeiras automáticas',
-      ],
-      cta: 'Fazer Upgrade',
-    },
-    {
-      name: 'Premium',
-      price: 'R$19,90',
-      priceSuffix: '/mês',
-      description: 'A experiência completa para dominar suas finanças.',
-      features: [
-        'Tudo do plano Pro',
-        'Projeções de investimento avançadas',
-        'Simulador de juros compostos detalhado',
-        'Relatórios completos (PDF/Excel)',
-        'Suporte prioritário',
-      ],
-      cta: 'Fazer Upgrade',
-    },
-  ];
-
-  const handleUpgradeClick = (planName) => {
-    toast({
-      title: '🚧 Funcionalidade em desenvolvimento!',
-      description: `A integração com o Stripe para o plano ${planName} ainda não foi implementada.`,
-    });
+  const handleGoToPlans = () => {
+    navigate('/planos');
   };
 
   return (
@@ -810,56 +765,25 @@ function PlansSettings() {
         </div>
         <div>
           <h3 className="text-lg font-semibold">Planos e Assinatura</h3>
-          <p className="text-sm text-muted-foreground">Escolha o plano ideal para suas necessidades</p>
+          <p className="text-sm text-muted-foreground">
+            Gerencie seu plano Free, Pro ou Premium, faça upgrade e veja os benefícios diretamente na tela de planos.
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {plans.map((plan, index) => (
-          <motion.div
-            key={plan.name}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-          >
-            <Card className={`flex flex-col h-full ${plan.name === 'Pro' ? 'border-primary ring-2 ring-primary' : ''}`}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  {plan.name === 'Pro' && <Star className="text-primary w-4 h-4" />}
-                  {plan.name}
-                  {plan.isCurrent && <CheckCircle className="w-4 h-4 text-green-500" />}
-                </CardTitle>
-                <CardDescription className="text-sm">{plan.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow pb-3">
-                <div className="mb-4">
-                  <span className="text-2xl font-bold">{plan.price}</span>
-                  {plan.priceSuffix && <span className="text-muted-foreground text-sm">{plan.priceSuffix}</span>}
-                </div>
-                <ul className="space-y-2">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardContent className="pt-0">
-                <Button
-                  className="w-full"
-                  disabled={plan.isCurrent}
-                  onClick={() => handleUpgradeClick(plan.name)}
-                  variant={plan.name === 'Pro' ? 'default' : 'outline'}
-                  size="sm"
-                >
-                  {plan.cta}
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Gerenciar planos</CardTitle>
+          <CardDescription>
+            Acesse a tela completa de planos para escolher ou alterar sua assinatura Lumify.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button className="w-full" onClick={handleGoToPlans}>
+            Ver planos e fazer upgrade
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
