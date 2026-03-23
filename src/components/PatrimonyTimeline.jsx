@@ -102,12 +102,14 @@ export default function PatrimonyTimeline({ accounts = [], investments = [], acc
           <div className="text-sm text-muted-foreground">Página {page} de {totalPages}</div>
           <div className="flex items-center gap-2">
             <button
-              className="px-3 py-1 rounded border bg-white"
+              type="button"
+              className="px-3 py-1 rounded-md border border-border bg-secondary text-secondary-foreground text-sm hover:bg-secondary/80 disabled:opacity-50 disabled:pointer-events-none"
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
             >Anterior</button>
             <button
-              className="px-3 py-1 rounded border bg-white"
+              type="button"
+              className="px-3 py-1 rounded-md border border-border bg-secondary text-secondary-foreground text-sm hover:bg-secondary/80 disabled:opacity-50 disabled:pointer-events-none"
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
             >Próxima</button>

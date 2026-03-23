@@ -94,7 +94,7 @@ export const EnhancedLoadingOverlay = ({
   const variants = {
     default: 'bg-background/80 backdrop-blur-sm',
     dark: 'bg-black/50 backdrop-blur-sm',
-    light: 'bg-white/80 backdrop-blur-sm'
+    light: 'bg-white/80 dark:bg-background/80 backdrop-blur-sm'
   };
 
   return (

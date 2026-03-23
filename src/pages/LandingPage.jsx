@@ -430,11 +430,11 @@ export function LandingPage() {
                   <h4 className="font-bold mb-4">Exemplo de Insight</h4>
                   <div className="space-y-3 text-sm">
                     <div className="p-3 rounded-lg bg-background border-l-4 border-amber-500">
-                      <p className="font-semibold text-amber-700">⚠️ Alerta de Poupança</p>
+                      <p className="font-semibold text-amber-700 dark:text-amber-300">⚠️ Alerta de Poupança</p>
                       <p className="text-muted-foreground mt-1">Sua taxa de poupança está 12% abaixo da média. Considere aumentar investimentos.</p>
                     </div>
                     <div className="p-3 rounded-lg bg-background border-l-4 border-green-500">
-                      <p className="font-semibold text-green-700">💡 Oportunidade</p>
+                      <p className="font-semibold text-green-700 dark:text-green-300">💡 Oportunidade</p>
                       <p className="text-muted-foreground mt-1">Você tem R$ 1.200 disponível para investir este mês.</p>
                     </div>
                     <div className="p-3 rounded-lg bg-background border-l-4 border-info">
