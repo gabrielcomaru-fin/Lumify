@@ -35,7 +35,7 @@ export const SmartAlerts = ({ insights, recommendations, financialHealth, trends
       case 'error': return 'text-red-600';
       case 'success': return 'text-green-600';
       case 'info': return 'text-blue-600';
-      default: return 'text-gray-600';
+      default: return 'text-muted-foreground';
     }
   };
 

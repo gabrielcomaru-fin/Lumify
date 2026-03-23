@@ -371,12 +371,12 @@ export const TransactionTable = ({
                       {isExpense && (
                         <div className="sm:hidden">
                           {transaction.pago ? (
-                            <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 text-xs">
+                            <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-800 text-xs">
                               <CheckCircle2 className="w-3 h-3 mr-1" />
                               Pago
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-orange-600 border-orange-200 text-xs">
+                            <Badge variant="outline" className="text-orange-600 border-orange-200 dark:text-orange-400 dark:border-orange-700 text-xs">
                               <Clock className="w-3 h-3 mr-1" />
                               Pendente
                             </Badge>
@@ -451,12 +451,12 @@ export const TransactionTable = ({
                     <TableCell className="hidden sm:table-cell w-[10%]">
                       <div className="flex items-center">
                         {transaction.pago ? (
-                          <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                          <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-800">
                             <CheckCircle2 className="w-3 h-3 mr-1" />
                             Pago
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-orange-600 border-orange-200">
+                          <Badge variant="outline" className="text-orange-600 border-orange-200 dark:text-orange-400 dark:border-orange-700">
                             <Clock className="w-3 h-3 mr-1" />
                             Pendente
                           </Badge>

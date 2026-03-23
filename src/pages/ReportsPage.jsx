@@ -358,22 +358,22 @@ const ReportsPage = memo(function ReportsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-900">Capacidade de Gasto Diário</h4>
-                      <p className="text-2xl font-bold text-blue-600 mt-1">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/35 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <h4 className="font-medium text-blue-900 dark:text-blue-100">Capacidade de Gasto Diário</h4>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
                         {formatCurrencyBRL(incomeInsights.dailySpendingCapacity)}
                       </p>
-                      <p className="text-sm text-blue-700 mt-1">
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                         Você pode gastar este valor por dia pelos próximos {incomeInsights.daysRemaining} dias
                       </p>
                     </div>
                     
-                    <div className="p-4 bg-green-50 rounded-lg">
-                      <h4 className="font-medium text-green-900">Taxa de Poupança</h4>
-                      <p className="text-2xl font-bold text-green-600 mt-1">
+                    <div className="p-4 bg-green-50 dark:bg-green-950/35 border border-green-200 dark:border-green-800 rounded-lg">
+                      <h4 className="font-medium text-green-900 dark:text-green-100">Taxa de Poupança</h4>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
                         {Math.round(incomeInsights.savingsRate)}%
                       </p>
-                      <p className="text-sm text-green-700 mt-1">
+                      <p className="text-sm text-green-700 dark:text-green-300 mt-1">
                         {incomeInsights.savingsRate >= 20 ? 'Excelente! Você está no caminho certo.' :
                          incomeInsights.savingsRate >= 10 ? 'Bom! Tente aumentar para 20%.' :
                          'Considere investir pelo menos 10% da sua renda.'}
@@ -381,9 +381,9 @@ const ReportsPage = memo(function ReportsPage() {
                     </div>
 
                     {incomeInsights.daysUntilBalanceZero && incomeInsights.daysUntilBalanceZero < 30 && (
-                      <div className="p-4 bg-yellow-50 rounded-lg">
-                        <h4 className="font-medium text-yellow-900">Atenção ao Saldo</h4>
-                        <p className="text-sm text-yellow-700">
+                      <div className="p-4 bg-yellow-50 dark:bg-yellow-950/35 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <h4 className="font-medium text-yellow-900 dark:text-yellow-100">Atenção ao Saldo</h4>
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
                           Se continuar gastando na média atual, seu saldo pode se esgotar em {incomeInsights.daysUntilBalanceZero} dias.
                         </p>
                       </div>
@@ -405,7 +405,7 @@ const ReportsPage = memo(function ReportsPage() {
                           <h4 className="font-medium">{insight.title}</h4>
                           <p className="text-sm text-muted-foreground mt-1">{insight.message}</p>
                           {insight.recommendation && (
-                            <p className="text-sm text-blue-600 mt-2">{insight.recommendation}</p>
+                            <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">{insight.recommendation}</p>
                           )}
                         </div>
                       ))}

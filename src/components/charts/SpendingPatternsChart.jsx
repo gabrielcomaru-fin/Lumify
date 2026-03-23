@@ -186,14 +186,14 @@ const SpendingPatternsChart = memo(function SpendingPatternsChart({ expenses, pe
           <div className="mt-4 space-y-2">
             {insights.map((insight, index) => (
               <div key={index} className={`p-3 rounded-lg border ${
-                insight.type === 'warning' ? 'bg-orange-50 border-orange-200' :
-                insight.type === 'tip' ? 'bg-blue-50 border-blue-200' :
-                'bg-gray-50 border-gray-200'
+                insight.type === 'warning' ? 'bg-orange-50 dark:bg-orange-950/35 border-orange-200 dark:border-orange-800' :
+                insight.type === 'tip' ? 'bg-blue-50 dark:bg-blue-950/35 border-blue-200 dark:border-blue-800' :
+                'bg-muted/50 border-border'
               }`}>
                 <div className="flex items-start gap-2">
                   <span className="text-lg">{insight.icon}</span>
                   <div>
-                    <h4 className="font-medium text-sm">{insight.title}</h4>
+                    <h4 className="font-medium text-sm text-foreground">{insight.title}</h4>
                     <p className="text-xs text-muted-foreground">{insight.message}</p>
                   </div>
                 </div>

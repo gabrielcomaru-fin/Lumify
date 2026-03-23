@@ -165,13 +165,13 @@ export function IncomeFlowChart() {
         
         {/* Breakdown das saídas */}
         <div className="grid grid-cols-2 gap-4 mt-4">
-          <div className="text-center p-3 bg-red-50 rounded-lg">
-            <p className="text-sm text-red-700">Despesas</p>
-            <p className="font-semibold text-red-600">{formatCurrencyBRL(totalExpenses)}</p>
+          <div className="text-center p-3 bg-red-50 dark:bg-red-950/35 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-700 dark:text-red-300">Despesas</p>
+            <p className="font-semibold text-red-600 dark:text-red-400">{formatCurrencyBRL(totalExpenses)}</p>
           </div>
-          <div className="text-center p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-700">Investimentos</p>
-            <p className="font-semibold text-blue-600">{formatCurrencyBRL(totalInvestments)}</p>
+          <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/35 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300">Investimentos</p>
+            <p className="font-semibold text-blue-600 dark:text-blue-400">{formatCurrencyBRL(totalInvestments)}</p>
           </div>
         </div>
       </CardContent>

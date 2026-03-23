@@ -440,7 +440,7 @@ export function ExpensesPage() {
                 <CardContent>
                   <div className="text-2xl font-bold text-green-600">{currencyFormatter.format(totalPaid)}</div>
                   <div className="text-sm text-orange-600 font-medium">{currencyFormatter.format(totalPending)} pendente</div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                  <div className="w-full bg-muted rounded-full h-2 mt-2">
                     <div 
                       className="bg-green-600 h-2 rounded-full transition-all duration-300" 
                       style={{ 
@@ -543,7 +543,7 @@ export function ExpensesPage() {
                           <span className="text-sm text-muted-foreground">{percentage.toFixed(1)}%</span>
                         </div>
                         <div className="text-2xl font-bold text-primary">{currencyFormatter.format(totalByPayment)}</div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                  <div className="w-full bg-muted rounded-full h-2 mt-2">
                     <div 
                             className="h-2 rounded-full transition-all duration-300" 
                       style={{ 
@@ -602,7 +602,7 @@ export function ExpensesPage() {
                           )}
             </div>
                         <div className="text-2xl font-bold">{currencyFormatter.format(period)}</div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div className="w-full bg-muted rounded-full h-2 mt-2">
                           <div 
                             className="h-2 rounded-full transition-all duration-300" 
                             style={{ 
@@ -641,12 +641,12 @@ export function ExpensesPage() {
                       const percentage = (mostUsed.total / totalSpent) * 100;
                       
                       return (
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="p-4 bg-blue-50 dark:bg-blue-950/35 border border-blue-200 dark:border-blue-800 rounded-lg">
                           <div className="flex items-start gap-3">
                             <div className="text-2xl">💳</div>
                             <div>
-                              <h4 className="font-medium text-blue-900">Meio de Pagamento Preferido</h4>
-                              <p className="text-sm text-blue-700">
+                              <h4 className="font-medium text-blue-900 dark:text-blue-100">Meio de Pagamento Preferido</h4>
+                              <p className="text-sm text-blue-700 dark:text-blue-300">
                                 Você usa <strong>{mostUsed.method.nome}</strong> para {percentage.toFixed(1)}% dos seus gastos ({currencyFormatter.format(mostUsed.total)}).
                                 {percentage > 70 && ' Considere diversificar seus meios de pagamento para melhor controle.'}
                               </p>
@@ -670,12 +670,12 @@ export function ExpensesPage() {
                       const percentage = (topCategory.total / totalSpent) * 100;
                       
                       return (
-                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="p-4 bg-orange-50 dark:bg-orange-950/35 border border-orange-200 dark:border-orange-800 rounded-lg">
                           <div className="flex items-start gap-3">
                             <div className="text-2xl">📊</div>
                             <div>
-                              <h4 className="font-medium text-orange-900">Categoria com Maior Gasto</h4>
-                              <p className="text-sm text-orange-700">
+                              <h4 className="font-medium text-orange-900 dark:text-orange-100">Categoria com Maior Gasto</h4>
+                              <p className="text-sm text-orange-700 dark:text-orange-300">
                                 <strong>{topCategory.category.nome}</strong> representa {percentage.toFixed(1)}% dos seus gastos ({currencyFormatter.format(topCategory.total)}).
                                 {percentage > 50 && ' Esta categoria está consumindo mais da metade do seu orçamento.'}
                               </p>
@@ -691,8 +691,8 @@ export function ExpensesPage() {
                   {trendData.length > 1 && (
                     <div className={`p-4 border rounded-lg ${
                       trendData[trendData.length - 1] > trendData[trendData.length - 2] 
-                        ? 'bg-red-50 border-red-200' 
-                        : 'bg-green-50 border-green-200'
+                        ? 'bg-red-50 dark:bg-red-950/35 border-red-200 dark:border-red-800' 
+                        : 'bg-green-50 dark:bg-green-950/35 border-green-200 dark:border-green-800'
                     }`}>
                       <div className="flex items-start gap-3">
                         <div className="text-2xl">
@@ -701,15 +701,15 @@ export function ExpensesPage() {
                         <div>
                           <h4 className={`font-medium ${
                             trendData[trendData.length - 1] > trendData[trendData.length - 2] 
-                              ? 'text-red-900' 
-                              : 'text-green-900'
+                              ? 'text-red-900 dark:text-red-100' 
+                              : 'text-green-900 dark:text-green-100'
                           }`}>
                             Tendência de Gastos
                           </h4>
                           <p className={`text-sm ${
                             trendData[trendData.length - 1] > trendData[trendData.length - 2] 
-                              ? 'text-red-700' 
-                              : 'text-green-700'
+                              ? 'text-red-700 dark:text-red-300' 
+                              : 'text-green-700 dark:text-green-300'
                           }`}>
                             {trendData[trendData.length - 1] > trendData[trendData.length - 2] 
                               ? `Seus gastos aumentaram ${((trendData[trendData.length - 1] - trendData[trendData.length - 2]) / trendData[trendData.length - 2] * 100).toFixed(1)}% em relação ao período anterior.`
