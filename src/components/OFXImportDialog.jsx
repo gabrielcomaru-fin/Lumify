@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
@@ -952,10 +953,10 @@ export function OFXImportDialog({
 
             {/* Busca e seleção em lote */}
             <div className="flex flex-wrap items-center gap-2">
-              <input
+              <Input
                 type="text"
                 placeholder="Buscar por descrição ou valor..."
-                className="flex-1 min-w-[200px] px-3 py-2 border rounded-md text-sm"
+                className="flex-1 min-w-[200px] bg-background text-foreground"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -991,7 +992,7 @@ export function OFXImportDialog({
                     key={idx} 
                     className={`
                       p-3 border-b last:border-b-0 transition-colors
-                      ${isSelected ? 'bg-white dark:bg-background' : 'bg-muted/30 opacity-60'}
+                      ${isSelected ? 'bg-background' : 'bg-muted/30 opacity-60'}
                       ${isDup ? 'border-l-4 border-l-yellow-500' : ''}
                     `}
                   >
@@ -1005,8 +1006,8 @@ export function OFXImportDialog({
                           className="mt-1 h-4 w-4 rounded accent-primary"
                         />
                         <div className="flex-1 min-w-0">
-                          <input
-                            className="w-full px-2 py-1 border rounded text-sm"
+                          <Input
+                            className="w-full h-8 py-1 text-xs md:h-9 md:text-sm bg-background text-foreground"
                             value={perTxDescriptions[idx] ?? t.descricao ?? config.defaultDescription}
                             onChange={(e) => setPerTxDescriptions(prev => ({ ...prev, [idx]: e.target.value }))}
                             disabled={!isSelected}
@@ -1091,8 +1092,8 @@ export function OFXImportDialog({
                         />
                       </div>
                       <div className="col-span-3">
-                        <input
-                          className="w-full px-2 py-1 border rounded text-sm"
+                        <Input
+                          className="w-full h-8 text-xs md:h-9 md:text-sm bg-background text-foreground"
                           value={perTxDescriptions[idx] ?? t.descricao ?? config.defaultDescription}
                           onChange={(e) => setPerTxDescriptions(prev => ({ ...prev, [idx]: e.target.value }))}
                           disabled={!isSelected}

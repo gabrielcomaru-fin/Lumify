@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { useFinance } from '@/contexts/FinanceDataContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,11 +16,18 @@ import { SpendingPatternsChart } from '@/components/charts/SpendingPatternsChart
 import { CompactSearchFilter } from '@/components/CompactSearchFilter';
 import { CompactHeader } from '@/components/CompactHeader';
 import { OFXImportDialog } from '@/components/OFXImportDialog';
-import { Receipt, DollarSign, BarChart3, ListChecks, ArrowUp, ArrowDown, CheckCircle2, Clock, Upload, CheckSquare, Trash2 } from 'lucide-react';
+import { Receipt, DollarSign, BarChart3, ListChecks, ArrowUp, ArrowDown, CheckCircle2, Upload, CheckSquare, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, subMonths } from 'date-fns';
 import { Sparklines, SparklinesLine } from 'react-sparklines';
 import { Button } from '@/components/ui/button';
+import {
+  getExpensePeriodBounds,
+  filterExpensesInPeriod,
+  countDistinctCalendarMonthsInRange,
+} from '@/lib/expensePeriod';
+import { CategoryBudgetBars } from '@/components/expenses/CategoryBudgetBars';
+import { ExpenseMonthlyAverageBarChart } from '@/components/expenses/ExpenseMonthlyAverageBarChart';
 
 const ITEMS_PER_PAGE = 10;
 const PAGE_ID = 'expensesPage';
@@ -64,6 +72,16 @@ export function ExpensesPage() {
   const handleSetPeriodType = (type) => {
     setFilter(f => ({ ...f, periodType: type, dateRange: undefined }));
   };
+
+  const { expensesInPeriod, monthsInPeriod } = useMemo(() => {
+    const bounds = getExpensePeriodBounds(filter);
+    if (!bounds) {
+      return { expensesInPeriod: expenses, monthsInPeriod: 1 };
+    }
+    const list = filterExpensesInPeriod(expenses, bounds.startDate, bounds.endDate);
+    const m = countDistinctCalendarMonthsInRange(bounds.startDate, bounds.endDate);
+    return { expensesInPeriod: list, monthsInPeriod: m };
+  }, [expenses, filter]);
 
   // Handler para importação OFX
   const handleImportOFX = async (transactions) => {
@@ -185,22 +203,27 @@ export function ExpensesPage() {
     };
   }, [expenses, filter, searchTerm, selectedCategory, paymentStatus, sortBy]);
 
-  const expensesByCategoryChartData = useMemo(() => {
-    if (filteredExpenses.length === 0) return [];
+  const dashboardSource =
+    filteredExpenses.length > 0 ? filteredExpenses : expensesInPeriod;
 
-    const categoryMap = expenseCategories.reduce((acc, cat) => {
-      acc[cat.id] = { categoryName: cat.nome, total: 0 };
-      return acc;
-    }, {});
+  const { dashboardTotalSpent, dashboardTotalPaid, dashboardTotalPending } = useMemo(() => {
+    const total = dashboardSource.reduce((s, e) => s + (Number(e.valor) || 0), 0);
+    const paid = dashboardSource
+      .filter((e) => e.pago === true)
+      .reduce((s, e) => s + (Number(e.valor) || 0), 0);
+    return {
+      dashboardTotalSpent: total,
+      dashboardTotalPaid: paid,
+      dashboardTotalPending: total - paid,
+    };
+  }, [dashboardSource]);
 
-    filteredExpenses.forEach(exp => {
-      if (categoryMap[exp.categoria_id]) {
-        categoryMap[exp.categoria_id].total += exp.valor;
-      }
-    });
-
-    return Object.values(categoryMap).filter(cat => cat.total > 0).sort((a, b) => b.total - a.total);
-  }, [filteredExpenses, expenseCategories]);
+  const showMonthlyHistorical =
+    filter.periodType === 'monthly' &&
+    !(filter.dateRange && filter.dateRange.from) &&
+    filter.month !== undefined &&
+    filter.month !== null &&
+    filter.year != null;
 
   const totalPages = Math.ceil(filteredExpenses.length / ITEMS_PER_PAGE);
   const paginatedExpenses = filteredExpenses.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -392,21 +415,7 @@ export function ExpensesPage() {
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-4 md:mt-5 space-y-4 md:space-y-5">
-            {filteredExpenses.length === 0 ? (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <Receipt className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Nenhuma despesa encontrada</h3>
-                  <p className="text-muted-foreground mb-4">
-                    {searchTerm || selectedCategory !== 'all' || paymentStatus !== 'all' 
-                      ? 'Tente ajustar os filtros para ver suas despesas.'
-                      : 'Adicione algumas despesas para ver o dashboard completo.'
-                    }
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <>
+            {/* KPIs principais — sempre primeiro */}
                 {/* KPIs Principais - Visão Geral */}
                 <div className="grid gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
               {/* Gasto Total com Tendência */}
@@ -416,7 +425,7 @@ export function ExpensesPage() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{currencyFormatter.format(totalSpent)}</div>
+                  <div className="text-2xl font-bold text-red-600">{currencyFormatter.format(dashboardTotalSpent)}</div>
                   <Sparklines data={trendData}>
                     <SparklinesLine color="#f87171" />
                   </Sparklines>
@@ -438,20 +447,20 @@ export function ExpensesPage() {
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{currencyFormatter.format(totalPaid)}</div>
-                  <div className="text-sm text-orange-600 font-medium">{currencyFormatter.format(totalPending)} pendente</div>
+                  <div className="text-2xl font-bold text-green-600">{currencyFormatter.format(dashboardTotalPaid)}</div>
+                  <div className="text-sm text-orange-600 font-medium">{currencyFormatter.format(dashboardTotalPending)} pendente</div>
                   <div className="w-full bg-muted rounded-full h-2 mt-2">
                     <div 
                       className="bg-green-600 h-2 rounded-full transition-all duration-300" 
                       style={{ 
-                        width: totalSpent > 0 
-                          ? `${(totalPaid / totalSpent) * 100}%` 
+                        width: dashboardTotalSpent > 0 
+                          ? `${(dashboardTotalPaid / dashboardTotalSpent) * 100}%` 
                           : '0%' 
                       }}
                     ></div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {totalSpent > 0 ? `${Math.round((totalPaid / totalSpent) * 100)}%` : '0%'} quitado
+                    {dashboardTotalSpent > 0 ? `${Math.round((dashboardTotalPaid / dashboardTotalSpent) * 100)}%` : '0%'} quitado
                   </p>
                 </CardContent>
               </Card>
@@ -464,13 +473,13 @@ export function ExpensesPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {filteredExpenses.length > 0 ? currencyFormatter.format(totalSpent / filteredExpenses.length) : "R$ 0,00"}
+                    {dashboardSource.length > 0 ? currencyFormatter.format(dashboardTotalSpent / dashboardSource.length) : "R$ 0,00"}
                   </div>
-                  <Sparklines data={trendData.map(t => t / (filteredExpenses.length || 1))}>
+                  <Sparklines data={trendData.map(t => t / (dashboardSource.length || 1))}>
                     <SparklinesLine color="#fbbf24" />
                   </Sparklines>
                   <p className="text-xs text-muted-foreground">
-                    {filteredExpenses.length} transação{filteredExpenses.length !== 1 ? 'ões' : ''} registrada{filteredExpenses.length !== 1 ? 's' : ''}
+                    {dashboardSource.length} transação{dashboardSource.length !== 1 ? 'ões' : ''} registrada{dashboardSource.length !== 1 ? 's' : ''}
                   </p>
                 </CardContent>
               </Card>
@@ -483,16 +492,16 @@ export function ExpensesPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-600">
-                    {filteredExpenses.length > 0 
-                      ? currencyFormatter.format(Math.max(...filteredExpenses.map(e => e.valor)))
+                    {dashboardSource.length > 0 
+                      ? currencyFormatter.format(Math.max(...dashboardSource.map(e => e.valor)))
                       : "R$ 0,00"
                     }
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {filteredExpenses.length > 0 
+                    {dashboardSource.length > 0 
                       ? (() => {
-                          const maxValue = Math.max(...filteredExpenses.map(exp => exp.valor));
-                          const maxExpense = filteredExpenses.find(e => e.valor === maxValue);
+                          const maxValue = Math.max(...dashboardSource.map(exp => exp.valor));
+                          const maxExpense = dashboardSource.find(e => e.valor === maxValue);
                           return maxExpense?.descricao?.substring(0, 20) + (maxExpense?.descricao?.length > 20 ? '...' : '');
                         })()
                       : 'Nenhuma despesa'
@@ -502,122 +511,101 @@ export function ExpensesPage() {
               </Card>
             </div>
 
-            {/* Análise por Meio de Pagamento */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Receipt className="h-5 w-5" />
-                  Análise por Meio de Pagamento
-                </CardTitle>
-                <CardDescription>Como você está gastando seu dinheiro</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {paymentMethods.map(paymentMethod => {
-                    const expensesByPayment = filteredExpenses.filter(exp => exp.meio_pagamento_id === paymentMethod.id);
-                    const totalByPayment = expensesByPayment.reduce((sum, exp) => sum + exp.valor, 0);
-                    const percentage = totalSpent > 0 ? (totalByPayment / totalSpent) * 100 : 0;
-                    
-                    if (totalByPayment === 0) return null;
-
-                    const getPaymentIcon = (tipo) => {
-                      const iconMap = {
-                        cartao_credito: '💳',
-                        cartao_debito: '💳',
-                        dinheiro: '💵',
-                        pix: '📱',
-                        transferencia: '🏦',
-                        boleto: '📄',
-                        outros: '💼',
-                      };
-                      return iconMap[tipo] || '💼';
-                    };
-
-                    return (
-                      <div key={paymentMethod.id} className="p-4 border rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{getPaymentIcon(paymentMethod.tipo)}</span>
-                            <span className="font-medium">{paymentMethod.nome}</span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">{percentage.toFixed(1)}%</span>
-                        </div>
-                        <div className="text-2xl font-bold text-primary">{currencyFormatter.format(totalByPayment)}</div>
-                  <div className="w-full bg-muted rounded-full h-2 mt-2">
-                    <div 
-                            className="h-2 rounded-full transition-all duration-300" 
-                      style={{ 
-                              width: `${percentage}%`,
-                              backgroundColor: paymentMethod.cor || '#3b82f6'
-                      }}
-                    ></div>
-                  </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {expensesByPayment.length} transação{expensesByPayment.length !== 1 ? 'ões' : ''}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+            {expensesInPeriod.length === 0 && (
+              <Card className="border-dashed">
+                <CardContent className="py-4 text-center text-sm text-muted-foreground">
+                  Nenhuma despesa no período selecionado. Ajuste o filtro ou registre lançamentos. Tetos por categoria em{' '}
+                  <Link to="/configuracoes" className="text-primary underline font-medium">
+                    Configurações
+                  </Link>
+                  .
                 </CardContent>
               </Card>
+            )}
 
-            {/* Análise Temporal - Comparação de Períodos */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Comparação Temporal
-                </CardTitle>
-                <CardDescription>Evolução dos seus gastos ao longo do tempo</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {trendData.slice(-3).map((period, index) => {
-                    const isCurrent = index === trendData.slice(-3).length - 1;
-                    const previousPeriod = trendData[trendData.length - 3 + index - 1];
-                    const change = previousPeriod && previousPeriod > 0 ? ((period - previousPeriod) / previousPeriod) * 100 : 0;
-                    
-                    // Gerar nomes mais descritivos baseados na posição
-                    const getPeriodName = (index, totalLength) => {
-                      if (isCurrent) return 'Período Atual';
-                      if (index === totalLength - 2) return 'Mês Anterior';
-                      if (index === totalLength - 3) return 'Antepenúltimo Mês';
-                      return `Mês ${totalLength - index}`;
-                    };
-                    
-                    const maxValue = Math.max(...trendData.filter(v => v > 0));
-                    const percentage = maxValue > 0 ? (period / maxValue) * 100 : 0;
-                    
-                    return (
-                      <div key={index} className={`p-4 border rounded-lg ${isCurrent ? 'border-primary bg-primary/5' : ''}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">
-                            {getPeriodName(index, trendData.slice(-3).length)}
-                          </span>
-                          {change !== 0 && !isNaN(change) && (
-                            <span className={`text-xs ${change > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                              {change > 0 ? '↗' : '↘'} {Math.abs(change).toFixed(1)}%
-                            </span>
-                          )}
-            </div>
-                        <div className="text-2xl font-bold">{currencyFormatter.format(period)}</div>
-                        <div className="w-full bg-muted rounded-full h-2 mt-2">
-                          <div 
-                            className="h-2 rounded-full transition-all duration-300" 
-                            style={{ 
-                              width: `${percentage}%`,
-                              backgroundColor: isCurrent ? '#3b82f6' : '#94a3b8'
-                            }}
-                          ></div>
+            <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
+              <CategoryBudgetBars
+                expenseCategories={expenseCategories}
+                expensesInPeriod={expensesInPeriod}
+                monthsInPeriod={monthsInPeriod}
+                currencyFormatter={currencyFormatter}
+              />
+
+              <Card className="h-full flex flex-col lg:min-h-[28rem]">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Receipt className="h-5 w-5" />
+                    Análise por Meio de Pagamento
+                  </CardTitle>
+                  <CardDescription>Como você está gastando seu dinheiro</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col min-h-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {paymentMethods.map(paymentMethod => {
+                      const expensesByPayment = dashboardSource.filter(exp => exp.meio_pagamento_id === paymentMethod.id);
+                      const totalByPayment = expensesByPayment.reduce((sum, exp) => sum + exp.valor, 0);
+                      const percentage = dashboardTotalSpent > 0 ? (totalByPayment / dashboardTotalSpent) * 100 : 0;
+
+                      if (totalByPayment === 0) return null;
+
+                      const getPaymentIcon = (tipo) => {
+                        const iconMap = {
+                          cartao_credito: '💳',
+                          cartao_debito: '💳',
+                          dinheiro: '💵',
+                          pix: '📱',
+                          transferencia: '🏦',
+                          boleto: '📄',
+                          outros: '💼',
+                        };
+                        return iconMap[tipo] || '💼';
+                      };
+
+                      return (
+                        <div key={paymentMethod.id} className="p-4 border rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{getPaymentIcon(paymentMethod.tipo)}</span>
+                              <span className="font-medium">{paymentMethod.nome}</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground">{percentage.toFixed(1)}%</span>
+                          </div>
+                          <div className="text-2xl font-bold text-primary">{currencyFormatter.format(totalByPayment)}</div>
+                          <div className="w-full bg-muted rounded-full h-2 mt-2">
+                            <div
+                              className="h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${percentage}%`,
+                                backgroundColor: paymentMethod.cor || '#3b82f6',
+                              }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {expensesByPayment.length} transação{expensesByPayment.length !== 1 ? 'ões' : ''}
+                          </p>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                      );
+                    })}
+                  </div>
+                  {dashboardTotalSpent === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-6">
+                      Nenhum gasto no período para distribuir por meio de pagamento.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
+            <ExpenseMonthlyAverageBarChart
+              expenses={expenses}
+              anchoredToFilter={showMonthlyHistorical}
+              anchorYear={filter.year}
+              anchorMonth={filter.month}
+              currencyFormatter={currencyFormatter}
+            />
+
+            {expensesInPeriod.length > 0 && (
+              <>
             {/* Insights e Recomendações */}
             <Card>
               <CardHeader>
@@ -633,12 +621,12 @@ export function ExpensesPage() {
                   {(() => {
                     const paymentTotals = paymentMethods.map(pm => ({
                       method: pm,
-                      total: filteredExpenses.filter(exp => exp.meio_pagamento_id === pm.id).reduce((sum, exp) => sum + exp.valor, 0)
+                      total: dashboardSource.filter(exp => exp.meio_pagamento_id === pm.id).reduce((sum, exp) => sum + exp.valor, 0)
                     })).filter(pt => pt.total > 0).sort((a, b) => b.total - a.total);
                     
                     if (paymentTotals.length > 0) {
                       const mostUsed = paymentTotals[0];
-                      const percentage = (mostUsed.total / totalSpent) * 100;
+                      const percentage = (mostUsed.total / dashboardTotalSpent) * 100;
                       
                       return (
                         <div className="p-4 bg-blue-50 dark:bg-blue-950/35 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -662,12 +650,12 @@ export function ExpensesPage() {
                   {(() => {
                     const categoryTotals = expenseCategories.map(cat => ({
                       category: cat,
-                      total: filteredExpenses.filter(exp => exp.categoria_id === cat.id).reduce((sum, exp) => sum + exp.valor, 0)
+                      total: dashboardSource.filter(exp => exp.categoria_id === cat.id).reduce((sum, exp) => sum + exp.valor, 0)
                     })).filter(ct => ct.total > 0).sort((a, b) => b.total - a.total);
                     
                     if (categoryTotals.length > 0) {
                       const topCategory = categoryTotals[0];
-                      const percentage = (topCategory.total / totalSpent) * 100;
+                      const percentage = (topCategory.total / dashboardTotalSpent) * 100;
                       
                       return (
                         <div className="p-4 bg-orange-50 dark:bg-orange-950/35 border border-orange-200 dark:border-orange-800 rounded-lg">
@@ -727,17 +715,17 @@ export function ExpensesPage() {
             {/* Gráficos de Análise */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
             {/* Gráfico por categoria (pizza) */}
-            <CategoryBreakdownChart expenses={filteredExpenses} categories={categories} />
+            <CategoryBreakdownChart expenses={dashboardSource} categories={categories} />
               
               {/* Gráfico por meio de pagamento */}
-              <PaymentMethodChart expenses={filteredExpenses} paymentMethods={paymentMethods} />
+              <PaymentMethodChart expenses={dashboardSource} paymentMethods={paymentMethods} />
             </div>
 
             {/* Análise de Padrões de Gastos */}
-            <SpendingPatternsChart expenses={filteredExpenses} />
+            <SpendingPatternsChart expenses={dashboardSource} />
 
-                {/* Tendência de Gastos (últimos meses - ignora filtros) */}
-                <ExpenseTrendChart />
+            {/* Tendência de Gastos (últimos meses - ignora filtros) */}
+            <ExpenseTrendChart />
               </>
             )}
           </TabsContent>
