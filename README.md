@@ -4,6 +4,11 @@ Um aplicativo moderno para gerenciamento de finanças pessoais, construído com 
 
 🌐 **Acesse em produção:** [https://lumify.app.br](https://lumify.app.br)
 
+Este repositório é um **monorepo**:
+
+- **`app/`** — aplicação principal (React + Vite)
+- **`blog/`** — blog em Next.js (SSG, MDX). Documentação: [blog/README.md](blog/README.md)
+
 ## 🚀 Funcionalidades
 
 - **Dashboard Inteligente**: KPIs relevantes e dicas personalizadas
