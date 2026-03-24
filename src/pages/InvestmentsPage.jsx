@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useFinance } from '@/contexts/FinanceDataContext';
 import { useToast } from '@/components/ui/use-toast';
-import { usePersistentState } from '@/hooks/usePersistentState';
+import { usePeriodFilter } from '@/contexts/PeriodFilterContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CategoryChart } from '@/components/CategoryChart';
@@ -17,12 +17,12 @@ import { OFXImportDialog } from '@/components/OFXImportDialog';
 
 import { TrendingUp, DollarSign, BarChart3, ListChecks, AlertCircle, Flame, Target, Upload } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, eachMonthOfInterval, subMonths, format } from 'date-fns';
+import { startOfMonth, endOfMonth, parseISO, eachMonthOfInterval, subMonths, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useGamification } from '@/contexts/GamificationContext';
+import { getPeriodBounds, filterExpensesInPeriod } from '@/lib/expensePeriod';
 
 const ITEMS_PER_PAGE = 10;
-const PAGE_ID = 'investmentsPage';
 
 export function InvestmentsPage() {
   const { investments, categories, accounts, addInvestment, updateInvestment, deleteInvestment, investmentGoal } = useFinance();
@@ -43,29 +43,7 @@ export function InvestmentsPage() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const investmentCategories = useMemo(() => categories.filter(c => c.tipo === 'investimento'), [categories]);
 
-  // Filtro persistente, alinhado ao ExpensesPage
-  const [filter, setFilter] = usePersistentState(`filter_${PAGE_ID}`, () => ({
-    periodType: 'monthly',
-    dateRange: undefined,
-    month: new Date().getMonth(),
-    year: new Date().getFullYear(),
-  }));
-
-  const handleSetDateRange = (range) => {
-    setFilter({ ...filter, dateRange: range });
-  };
-  
-  const handleSetMonth = (month) => {
-      setFilter({ dateRange: undefined, periodType: 'monthly', month, year: filter.year || new Date().getFullYear() });
-  };
-
-  const handleSetYear = (year) => {
-      setFilter(f => ({ ...f, dateRange: undefined, year }));
-  };
-
-  const handleSetPeriodType = (type) => {
-    setFilter(f => ({ ...f, periodType: type, dateRange: undefined }));
-  };
+  const { filter } = usePeriodFilter();
 
   // Reset de página ao alterar filtros/busca/ordenação/aba
   useEffect(() => {
@@ -92,35 +70,8 @@ export function InvestmentsPage() {
   };
 
   const { filteredInvestments, totalInvested } = useMemo(() => {
-    let filtered = [];
-    let startDate, endDate;
-
-    if (filter.dateRange && filter.dateRange.from) {
-      // Garantir que as datas sejam objetos Date (podem vir como string do localStorage)
-      startDate = filter.dateRange.from instanceof Date 
-        ? filter.dateRange.from 
-        : new Date(filter.dateRange.from);
-      const toDate = filter.dateRange.to || filter.dateRange.from;
-      endDate = toDate instanceof Date 
-        ? new Date(toDate) // Criar cópia para não modificar o original
-        : new Date(toDate);
-    } else if (filter.periodType === 'yearly' && filter.year) {
-      startDate = startOfYear(new Date(filter.year, 0, 1));
-      endDate = endOfYear(new Date(filter.year, 11, 31));
-    } else if (filter.periodType === 'monthly' && filter.month !== undefined && filter.year) {
-      startDate = startOfMonth(new Date(filter.year, filter.month, 1));
-      endDate = endOfMonth(new Date(filter.year, filter.month, 1));
-    }
-
-    if (startDate && endDate) {
-        // Criar cópia para não modificar o original
-        endDate = new Date(endDate);
-        endDate.setHours(23, 59, 59, 999);
-        filtered = investments.filter(inv => {
-            const invDate = parseISO(inv.data);
-            return invDate >= startDate && invDate <= endDate;
-        });
-    }
+    const { startDate, endDate } = getPeriodBounds(filter);
+    let filtered = filterExpensesInPeriod(investments, startDate, endDate);
 
     // Aplicar busca por descrição (apenas no Relatório)
     if (activeTab === 'relatorio' && searchTerm) {
@@ -377,16 +328,7 @@ export function InvestmentsPage() {
               <Button variant="outline" onClick={() => setIsImportOpen(true)} className="flex items-center gap-2">
                 <Upload className="h-4 w-4" /> Importar OFX
               </Button>
-              <CompactPeriodFilter 
-                periodType={filter.periodType}
-                setPeriodType={handleSetPeriodType}
-                dateRange={filter.dateRange}
-                setDateRange={handleSetDateRange}
-                month={filter.month}
-                setMonth={handleSetMonth}
-                year={filter.year}
-                setYear={handleSetYear}
-              />
+              <CompactPeriodFilter />
             </div>
           </div>
           <TabsContent value="relatorio" className="mt-4 md:mt-5 space-y-4 md:space-y-5">

@@ -435,7 +435,7 @@ export function LandingPage() {
                     </div>
                     <div className="p-3 rounded-lg bg-background border-l-4 border-green-500">
                       <p className="font-semibold text-green-700 dark:text-green-300">💡 Oportunidade</p>
-                      <p className="text-muted-foreground mt-1">Você tem R$ 1.200 disponível para investir este mês.</p>
+                      <p className="text-muted-foreground mt-1">Sobra de R$ 1.200 no orçamento do mês — bom momento para avaliar um aporte extra.</p>
                     </div>
                     <div className="p-3 rounded-lg bg-background border-l-4 border-info">
                       <p className="font-semibold text-info">📈 Projeção</p>

@@ -57,7 +57,7 @@ export function IncomeFlowChart() {
         color: '#3b82f6'
       },
       {
-        name: 'Saldo Disponível',
+        name: 'Sobra no mês',
         value: availableBalance,
         type: 'balance',
         color: availableBalance >= 0 ? '#22c55e' : '#ef4444'

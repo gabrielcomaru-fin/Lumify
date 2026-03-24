@@ -27,6 +27,7 @@ import { ProtectedResetRoute } from '@/components/ProtectedResetRoute';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { useRecoveryCheck } from '@/hooks/useRecoveryCheck';
 import { FinanceDataProvider } from '@/contexts/FinanceDataContext';
+import { PeriodFilterProvider } from '@/contexts/PeriodFilterContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { GamificationProvider } from '@/contexts/GamificationContext';
@@ -77,6 +78,7 @@ function AppContent() {
       <ErrorBoundary>
         <Router>
           <FinanceDataProvider>
+            <PeriodFilterProvider>
             <SubscriptionProvider>
             <GamificationProvider>
             <Suspense fallback={
@@ -121,6 +123,7 @@ function AppContent() {
             </Suspense>
             </GamificationProvider>
             </SubscriptionProvider>
+            </PeriodFilterProvider>
           </FinanceDataProvider>
         </Router>
       </ErrorBoundary>
