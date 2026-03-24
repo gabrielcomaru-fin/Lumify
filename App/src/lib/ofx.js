@@ -29,7 +29,7 @@ export async function readAsText(input) {
 }
 
 /**
- * Converte data OFX (ex.: 20240131120000[-03:BRST]) para ISO yyyy-mm-dd
+ * Converte data OFX (ex.: 20240131120000 com sufixo de fuso, ex. -03 BRST) para ISO yyyy-mm-dd
  */
 export function parseOfxDate(ofxDate) {
   if (!ofxDate) return null;

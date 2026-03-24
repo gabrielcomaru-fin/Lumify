@@ -1,0 +1,1 @@
+var e=new Intl.NumberFormat(`pt-BR`,{style:`currency`,currency:`BRL`});function t(t){return typeof t!=`number`||Number.isNaN(t)?`-`:e.format(t)}function n(e,t={maximumFractionDigits:0}){return typeof e!=`number`||Number.isNaN(e)?`-`:new Intl.NumberFormat(`pt-BR`,{style:`percent`,maximumFractionDigits:t.maximumFractionDigits??0}).format(e/100)}export{n,t};
