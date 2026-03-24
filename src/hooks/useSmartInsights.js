@@ -36,19 +36,11 @@ export const useSmartInsights = () => {
       });
     }
     
-    // Análise de oportunidades de investimento
-    const investmentOpportunity = findInvestmentOpportunities(data);
-    if (investmentOpportunity.found) {
-      insights.push({
-        type: 'success',
-        title: 'Oportunidade de Investimento',
-        message: `Você tem R$ ${investmentOpportunity.amount.toLocaleString('pt-BR')} disponível para investir`,
-        recommendation: 'Considere aumentar seus aportes mensais',
-        priority: 'high',
-        action: 'Aumentar aportes'
-      });
-    }
-    
+    // Não exibimos mais "valor disponível para investir" aqui: o cálculo antigo
+    // (soma de saldos de contas + reserva − 3× média de gastos) podia duplicar patrimônio
+    // e inflar valores sem correspondência com caixa real. O painel usa "saldo do mês"
+    // (useIncomeInsights) e ações rápidas para sugestões de aporte.
+
     // Análise de diversificação
     const diversification = analyzeDiversification(data.investments, data.categories);
     if (diversification.score < 30) {
@@ -62,13 +54,13 @@ export const useSmartInsights = () => {
       });
     }
     
-    // Análise de liquidez
-    const liquidity = analyzeLiquidity(data);
-    if (liquidity.ratio < 3) {
+    // Liquidez: mesma métrica do painel (useAdvancedMetrics) — reserva marcada ÷ média mensal de gastos
+    const liquidityRatio = financialHealth?.liquidityRatio ?? 0;
+    if (liquidityRatio < 3) {
       insights.push({
         type: 'warning',
         title: 'Reserva de Emergência Baixa',
-        message: `Sua reserva de emergência cobre apenas ${liquidity.months} mês(es) de gastos`,
+        message: `Sua reserva de emergência cobre apenas ${liquidityRatio.toFixed(1)} mês(es) de gastos`,
         recommendation: 'Construa uma reserva de emergência de 3-6 meses',
         priority: 'high',
         action: 'Construir reserva de emergência'
@@ -92,7 +84,7 @@ export const useSmartInsights = () => {
       const priorityOrder = { high: 3, medium: 2, low: 1 };
       return priorityOrder[b.priority] - priorityOrder[a.priority];
     });
-  }, []);
+  }, [financialHealth]);
 
   // Analisar padrões de gastos
   const analyzeSpendingPatterns = useCallback((expenses) => {
@@ -153,29 +145,6 @@ export const useSmartInsights = () => {
     };
   }, []);
 
-  // Encontrar oportunidades de investimento
-  const findInvestmentOpportunities = useCallback((data) => {
-    const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.valor, 0);
-    const totalInvestments = data.investments.reduce((sum, investment) => sum + investment.valor_aporte, 0);
-    const totalAccounts = data.accounts.reduce((sum, account) => sum + (account.saldo || 0), 0);
-    
-    // Inclui investimentos marcados como reserva de emergência na liquidez
-    const emergencyFromInvestments = data.investments
-      .filter(inv => inv.is_reserva_emergencia === true)
-      .reduce((sum, inv) => sum + (inv.valor_aporte || 0), 0);
-    
-    const totalLiquidity = totalAccounts + emergencyFromInvestments;
-    
-    // Calcular quanto poderia ser investido (após garantir reserva de 3 meses)
-    const potentialInvestment = Math.max(0, totalLiquidity - (totalExpenses * 3));
-    
-    return {
-      found: potentialInvestment > 100,
-      amount: potentialInvestment,
-      recommendation: potentialInvestment > 1000 ? 'Considere investir em produtos de longo prazo' : 'Comece com investimentos de baixo valor'
-    };
-  }, []);
-
   // Analisar diversificação
   const analyzeDiversification = useCallback((investments, categories) => {
     if (investments.length === 0) return { score: 0, topCategories: [] };
@@ -204,23 +173,6 @@ export const useSmartInsights = () => {
       .map(([name]) => name);
     
     return { score, topCategories };
-  }, []);
-
-  // Analisar liquidez (considera investimentos de reserva de emergência)
-  const analyzeLiquidity = useCallback((data) => {
-    const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.valor, 0);
-    const totalAccounts = data.accounts.reduce((sum, account) => sum + (account.saldo || 0), 0);
-    
-    // Inclui investimentos marcados como reserva de emergência
-    const emergencyFromInvestments = data.investments
-      .filter(inv => inv.is_reserva_emergencia === true)
-      .reduce((sum, inv) => sum + (inv.valor_aporte || 0), 0);
-    
-    const totalLiquidity = totalAccounts + emergencyFromInvestments;
-    const ratio = totalExpenses > 0 ? totalLiquidity / totalExpenses : 0;
-    const months = Math.round(ratio);
-    
-    return { ratio, months, emergencyFromInvestments };
   }, []);
 
   // Analisar metas

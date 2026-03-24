@@ -34,7 +34,7 @@ export const useIncomeInsights = () => {
     const totalCurrentMonthExpenses = currentMonthExpenses.filter(exp => exp.pago).reduce((sum, exp) => sum + exp.valor, 0);
     const totalCurrentMonthInvestments = currentMonthInvestments.reduce((sum, inv) => sum + inv.valor_aporte, 0);
     
-    // Saldo disponível do mês atual
+    // Sobra no orçamento do mês (receitas − despesas pagas − investimentos do mês)
     const currentMonthAvailableBalance = totalCurrentMonthIncome - totalCurrentMonthExpenses - totalCurrentMonthInvestments;
     
     // Capacidade de gasto diário

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { useFinance } from '@/contexts/FinanceDataContext';
 import { useToast } from '@/components/ui/use-toast';
-import { usePersistentState } from '@/hooks/usePersistentState';
+import { usePeriodFilter } from '@/contexts/PeriodFilterContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { TransactionTable } from '@/components/TransactionTable';
@@ -18,11 +18,11 @@ import { CompactHeader } from '@/components/CompactHeader';
 import { OFXImportDialog } from '@/components/OFXImportDialog';
 import { Receipt, DollarSign, BarChart3, ListChecks, ArrowUp, ArrowDown, CheckCircle2, Upload, CheckSquare, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, subMonths } from 'date-fns';
+import { startOfMonth, endOfMonth, parseISO, subMonths } from 'date-fns';
 import { Sparklines, SparklinesLine } from 'react-sparklines';
 import { Button } from '@/components/ui/button';
 import {
-  getExpensePeriodBounds,
+  getPeriodBounds,
   filterExpensesInPeriod,
   countDistinctCalendarMonthsInRange,
 } from '@/lib/expensePeriod';
@@ -30,7 +30,6 @@ import { CategoryBudgetBars } from '@/components/expenses/CategoryBudgetBars';
 import { ExpenseMonthlyAverageBarChart } from '@/components/expenses/ExpenseMonthlyAverageBarChart';
 
 const ITEMS_PER_PAGE = 10;
-const PAGE_ID = 'expensesPage';
 
 export function ExpensesPage() {
   const { expenses, categories, paymentMethods, addExpense, updateExpense, deleteExpense, toggleExpensePayment } = useFinance();
@@ -50,34 +49,10 @@ export function ExpensesPage() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const expenseCategories = useMemo(() => categories.filter(c => c.tipo === 'gasto'), [categories]);
 
-  const [filter, setFilter] = usePersistentState(`filter_${PAGE_ID}`, () => ({
-    periodType: 'monthly',
-    dateRange: undefined,
-    month: new Date().getMonth(),
-    year: new Date().getFullYear(),
-  }));
-
-  const handleSetDateRange = (range) => {
-    setFilter({ ...filter, dateRange: range });
-  };
-
-  const handleSetMonth = (month) => {
-    setFilter({ dateRange: undefined, periodType: 'monthly', month, year: filter.year || new Date().getFullYear() });
-  };
-
-  const handleSetYear = (year) => {
-    setFilter(f => ({ ...f, dateRange: undefined, year }));
-  };
-
-  const handleSetPeriodType = (type) => {
-    setFilter(f => ({ ...f, periodType: type, dateRange: undefined }));
-  };
+  const { filter } = usePeriodFilter();
 
   const { expensesInPeriod, monthsInPeriod } = useMemo(() => {
-    const bounds = getExpensePeriodBounds(filter);
-    if (!bounds) {
-      return { expensesInPeriod: expenses, monthsInPeriod: 1 };
-    }
+    const bounds = getPeriodBounds(filter);
     const list = filterExpensesInPeriod(expenses, bounds.startDate, bounds.endDate);
     const m = countDistinctCalendarMonthsInRange(bounds.startDate, bounds.endDate);
     return { expensesInPeriod: list, monthsInPeriod: m };
@@ -103,38 +78,8 @@ export function ExpensesPage() {
   };
 
   const { filteredExpenses, totalSpent, trendData, paidExpenses, pendingExpenses, totalPaid, totalPending } = useMemo(() => {
-    let filtered = [];
-    let startDate, endDate;
-
-    if (filter.dateRange && filter.dateRange.from) {
-      // Garantir que as datas sejam objetos Date (podem vir como string do localStorage)
-      startDate = filter.dateRange.from instanceof Date 
-        ? filter.dateRange.from 
-        : new Date(filter.dateRange.from);
-      const toDate = filter.dateRange.to || filter.dateRange.from;
-      endDate = toDate instanceof Date 
-        ? new Date(toDate) // Criar cópia para não modificar o original
-        : new Date(toDate);
-    } else if (filter.periodType === 'yearly' && filter.year) {
-      startDate = startOfYear(new Date(filter.year, 0, 1));
-      endDate = endOfYear(new Date(filter.year, 11, 31));
-    } else if (filter.periodType === 'monthly' && filter.month !== undefined && filter.year) {
-      startDate = startOfMonth(new Date(filter.year, filter.month, 1));
-      endDate = endOfMonth(new Date(filter.year, filter.month, 1));
-    }
-
-    if (startDate && endDate) {
-      // Criar cópia para não modificar o original
-      endDate = new Date(endDate);
-      endDate.setHours(23, 59, 59, 999);
-      filtered = expenses.filter(expense => {
-        const expenseDate = parseISO(expense.data);
-        return expenseDate >= startDate && expenseDate <= endDate;
-      });
-    } else {
-      // Se não há filtro de período, usar todas as despesas
-      filtered = expenses;
-    }
+    const { startDate, endDate } = getPeriodBounds(filter);
+    let filtered = filterExpensesInPeriod(expenses, startDate, endDate);
 
     // Aplicar busca por descrição
     if (searchTerm) {
@@ -354,16 +299,7 @@ export function ExpensesPage() {
               <Button variant="outline" onClick={() => setIsImportOpen(true)} className="flex items-center gap-2">
                 <Upload className="h-4 w-4" /> Importar OFX
               </Button>
-              <CompactPeriodFilter
-                periodType={filter.periodType}
-                setPeriodType={handleSetPeriodType}
-                dateRange={filter.dateRange}
-                setDateRange={handleSetDateRange}
-                month={filter.month}
-                setMonth={handleSetMonth}
-                year={filter.year}
-                setYear={handleSetYear}
-              />
+              <CompactPeriodFilter />
             </div>
           </div>
 

@@ -142,7 +142,7 @@ const QuickActionCard = memo(function QuickActionCard() {
       });
     }
 
-    // Ação 3: Saldo disponível alto (oportunidade)
+    // Ação 3: Sobra no mês alta (oportunidade de aporte extra)
     if (incomeInsights.availableBalance > monthlyGoal * 0.5 && monthlyGoal > 0) {
       const extraAmount = Math.floor(incomeInsights.availableBalance * 0.3 / 100) * 100; // 30% do saldo disponível
       
@@ -155,7 +155,7 @@ const QuickActionCard = memo(function QuickActionCard() {
           iconColor: 'text-primary',
           bgColor: 'bg-primary/10 border-primary/20',
           title: 'Oportunidade de Aporte Extra',
-          context: `Você tem saldo disponível de R$ ${incomeInsights.availableBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+          context: `Sobra no mês (após receitas, gastos pagos e investimentos): R$ ${incomeInsights.availableBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
           suggestion: `Que tal investir R$ ${extraAmount.toLocaleString('pt-BR')}?`,
           suggestedAmount: extraAmount,
           impact: 'Acelere a construção do seu patrimônio',

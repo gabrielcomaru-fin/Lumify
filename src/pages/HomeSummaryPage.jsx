@@ -1,4 +1,4 @@
-import React, { useMemo, memo, useCallback, useState } from 'react';
+import React, { useMemo, memo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useFinance } from '@/contexts/FinanceDataContext';
 import { useIncomeInsights } from '@/hooks/useIncomeInsights';
 import { CompactPeriodFilter } from '@/components/CompactPeriodFilter';
+import { usePeriodBounds } from '@/hooks/usePeriodBounds';
 import { CompactHeader } from '@/components/CompactHeader';
 import { FinancialHealthMeter } from '@/components/dashboard/FinancialHealthMeter';
 import { QuickActionCard } from '@/components/dashboard/QuickActionCard';
@@ -15,7 +16,7 @@ import { FinancialJourneyCard } from '@/components/dashboard/FinancialJourneyCar
 import { TrendingUp, TrendingDown, Target, AlertTriangle, PiggyBank, Lightbulb, Trophy, DollarSign, Settings, Eye, EyeOff, LayoutGrid, Minimize2 } from 'lucide-react';
 import { useGamification } from '@/contexts/GamificationContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { startOfMonth, endOfMonth, startOfYear, endOfYear, eachMonthOfInterval, subMonths, parseISO, format } from 'date-fns';
+import { startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, parseISO, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const HomeSummaryPage = memo(function HomeSummaryPage() {
@@ -23,34 +24,10 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
   const incomeInsights = useIncomeInsights();
   const { evaluateAchievements } = useGamification();
 
-  const [periodType, setPeriodType] = useState('monthly');
-  const [dateRange, setDateRange] = useState(undefined);
-  const [month, setMonth] = useState(new Date().getMonth());
-  const [year, setYear] = useState(new Date().getFullYear());
-  
+  const { startDate, endDate, filter } = usePeriodBounds();
+
   // Focus Mode - modo simplificado
   const [focusMode, setFocusMode] = useState(false);
-
-  // Memoizar callbacks para evitar re-renders desnecessários
-  const handlePeriodTypeChange = useCallback((type) => setPeriodType(type), []);
-  const handleDateRangeChange = useCallback((range) => setDateRange(range), []);
-  const handleMonthChange = useCallback((m) => setMonth(m), []);
-  const handleYearChange = useCallback((y) => setYear(y), []);
-
-  const { startDate, endDate } = useMemo(() => {
-    let s, e;
-    if (dateRange && dateRange.from) {
-      s = dateRange.from; e = dateRange.to || dateRange.from;
-    } else if (periodType === 'yearly' && year) {
-      s = startOfYear(new Date(year, 0, 1)); e = endOfYear(new Date(year, 11, 31));
-    } else if (periodType === 'monthly' && month !== undefined && year) {
-      s = startOfMonth(new Date(year, month, 1)); e = endOfMonth(new Date(year, month, 1));
-    } else {
-      const now = new Date(); s = startOfMonth(now); e = endOfMonth(now);
-    }
-    e.setHours(23,59,59,999);
-    return { startDate: s, endDate: e };
-  }, [dateRange, periodType, month, year]);
 
   const filteredExpenses = useMemo(() => expenses.filter(exp => {
     const d = parseISO(exp.data); return d >= startDate && d <= endDate;
@@ -67,8 +44,12 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
 
   // Meta mensal acumulada para o período
   const periodMonths = useMemo(() => {
+    const { dateRange, periodType, year } = filter;
     if (dateRange && dateRange.from) {
-      return eachMonthOfInterval({ start: startOfMonth(dateRange.from), end: endOfMonth(dateRange.to || dateRange.from) }).length;
+      const from = dateRange.from instanceof Date ? dateRange.from : new Date(dateRange.from);
+      const toRaw = dateRange.to || dateRange.from;
+      const to = toRaw instanceof Date ? toRaw : new Date(toRaw);
+      return eachMonthOfInterval({ start: startOfMonth(from), end: endOfMonth(to) }).length;
     }
     if (periodType === 'yearly' && year) {
       const now = new Date();
@@ -77,7 +58,7 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
       return now.getMonth() + 1;
     }
     return 1;
-  }, [dateRange, periodType, year]);
+  }, [filter]);
 
   const periodGoal = (Number(investmentGoal) || 0) * periodMonths;
   const goalProgress = periodGoal > 0 ? (totalInvested / periodGoal) * 100 : 0;
@@ -165,16 +146,7 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
         >
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
-              <CompactPeriodFilter 
-                periodType={periodType}
-                setPeriodType={handlePeriodTypeChange}
-                dateRange={dateRange}
-                setDateRange={handleDateRangeChange}
-                month={month}
-                setMonth={handleMonthChange}
-                year={year}
-                setYear={handleYearChange}
-              />
+              <CompactPeriodFilter />
               {/* Toggle Focus Mode */}
               <Button
                 variant="ghost"
@@ -293,8 +265,11 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
-                Saldo Disponível
+                Sobra no mês
               </CardTitle>
+              <CardDescription className="text-xs">
+                Mês atual: receitas − gastos pagos − investimentos (não é saldo em conta)
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className={`text-3xl font-bold ${incomeInsights.availableBalance >= 0 ? 'text-success' : 'text-error'}`}>

@@ -14,6 +14,7 @@ import { useAdvancedExport } from '@/hooks/useAdvancedExport';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/components/ui/use-toast';
 import { CompactPeriodFilter } from '@/components/CompactPeriodFilter';
+import { usePeriodBounds } from '@/hooks/usePeriodBounds';
 import { CompactHeader } from '@/components/CompactHeader';
 import { ExpenseTrendChart } from '@/components/charts/ExpenseTrendChart';
 import { InvestmentGrowthChart } from '@/components/charts/InvestmentGrowthChart';
@@ -46,26 +47,10 @@ const ReportsPage = memo(function ReportsPage() {
   const { investmentScenarios, spendingScenarios, retirementScenarios } = useScenarioAnalysis();
   const { exportToPDF, exportToCSV, exportToJSON } = useAdvancedExport();
   
-  const [periodType, setPeriodType] = useState('monthly');
-  const [dateRange, setDateRange] = useState(undefined);
-  const [month, setMonth] = useState(new Date().getMonth());
-  const [year, setYear] = useState(new Date().getFullYear());
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { startDate, endDate } = useMemo(() => {
-    let s, e;
-    if (dateRange && dateRange.from) {
-      s = dateRange.from; e = dateRange.to || dateRange.from;
-    } else if (periodType === 'yearly' && year) {
-      s = startOfYear(new Date(year, 0, 1)); e = endOfYear(new Date(year, 11, 31));
-    } else if (periodType === 'monthly' && month !== undefined && year) {
-      s = startOfMonth(new Date(year, month, 1)); e = endOfMonth(new Date(year, month, 1));
-    } else {
-      const now = new Date(); s = startOfMonth(now); e = endOfMonth(now);
-    }
-    e.setHours(23,59,59,999);
-    return { startDate: s, endDate: e };
-  }, [dateRange, periodType, month, year]);
+  const { startDate, endDate, filter, label: periodLabel } = usePeriodBounds();
+  const { periodType, month, year } = filter;
 
   const filteredExpenses = useMemo(() => expenses.filter(exp => {
     const d = parseISO(exp.data); return d >= startDate && d <= endDate;
@@ -184,19 +169,10 @@ const ReportsPage = memo(function ReportsPage() {
       <div className="space-y-4 md:space-y-5 page-top">
         <CompactHeader 
           title="Relatórios Avançados"
-          subtitle={`Período: ${format(startDate, 'dd/MM/yyyy')} — ${format(endDate, 'dd/MM/yyyy')}`}
+          subtitle={`Período: ${periodLabel}`}
         >
           <div className="flex items-center justify-between gap-4">
-            <CompactPeriodFilter 
-              periodType={periodType}
-              setPeriodType={setPeriodType}
-              dateRange={dateRange}
-              setDateRange={setDateRange}
-              month={month}
-              setMonth={setMonth}
-              year={year}
-              setYear={setYear}
-            />
+            <CompactPeriodFilter />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
@@ -275,7 +251,7 @@ const ReportsPage = memo(function ReportsPage() {
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{formatCurrencyBRL(incomeInsights.totalCurrentMonthIncome)}</div>
               <CardDescription>
-                Saldo disponível: {formatCurrencyBRL(incomeInsights.availableBalance)}
+                Sobra no mês (orçamento): {formatCurrencyBRL(incomeInsights.availableBalance)}
               </CardDescription>
             </CardContent>
           </Card>
