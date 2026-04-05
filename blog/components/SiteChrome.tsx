@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { APP_URL, SITE_URL } from "@/lib/config";
 
@@ -15,9 +16,16 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
-          className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
+          className="flex items-center gap-2 text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
         >
-          Lumify Blog
+          <Image
+            src="/logo-icon.svg"
+            alt=""
+            width={32}
+            height={32}
+            className="rounded-lg"
+          />
+          <span>Lumify Blog</span>
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <Link
