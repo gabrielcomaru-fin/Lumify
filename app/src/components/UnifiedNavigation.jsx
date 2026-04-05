@@ -115,8 +115,8 @@ export function UnifiedNavigation({
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <Link to="/dashboard" className="flex items-center space-x-2.5 group">
-          <div className="h-8 w-8 bg-gradient-to-br from-primary via-primary to-info rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-200">
-            <DollarSign className="h-4.5 w-4.5 text-primary-foreground" />
+          <div className="h-8 w-8 rounded-lg overflow-hidden shadow-sm ring-1 ring-border/60 group-hover:shadow-md transition-shadow duration-200">
+            <img src="/logo-menu.svg" alt="Lumify" className="h-full w-full object-contain p-0.5" />
           </div>
           {(!isCollapsed || isMobile) && (
             <span className="text-base font-bold text-foreground bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Lumify</span>
@@ -305,8 +305,8 @@ export function UnifiedNavigation({
           </Button>
           
           <Link to="/dashboard" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 bg-gradient-to-br from-primary via-primary to-info rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-200">
-              <DollarSign className="w-5 h-5 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-lg overflow-hidden shadow-sm ring-1 ring-border/60 group-hover:shadow-md transition-shadow duration-200">
+              <img src="/logo-menu.svg" alt="Lumify" className="h-full w-full object-contain p-0.5" />
             </div>
             <span className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Lumify</span>
           </Link>

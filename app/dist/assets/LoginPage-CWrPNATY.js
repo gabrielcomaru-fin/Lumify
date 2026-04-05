@@ -1,0 +1,1 @@
+import"./chunk-BEqpzyXh.js";import{i as e,o as t,r as n}from"./utils-C5T2v2E1.js";import{t as r}from"./AuthForm-DYCrawpu.js";import{c as i}from"./card-DG6t6_Qb.js";t();var a=n();function o(){let{signIn:t}=i();return(0,a.jsxs)(a.Fragment,{children:[(0,a.jsx)(e,{children:(0,a.jsx)(`title`,{children:`Login - Lumify`})}),(0,a.jsx)(r,{onLogin:t})]})}export{o as LoginPage};

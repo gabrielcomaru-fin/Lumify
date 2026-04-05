@@ -20,6 +20,10 @@ export const metadata: Metadata = {
     template: "%s | Lumify Blog",
   },
   description: "Educação financeira, orçamento e investimentos — Lumify Blog.",
+  icons: {
+    icon: [{ url: "/lumify-favicon.svg", type: "image/svg+xml" }],
+    apple: "/favicon.png",
+  },
   robots: {
     index: true,
     follow: true,

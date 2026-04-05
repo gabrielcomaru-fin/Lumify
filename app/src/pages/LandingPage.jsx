@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { 
-  DollarSign, BarChart3, Target, ShieldCheck, Star, TrendingUp, 
+  BarChart3, Target, ShieldCheck, Star, TrendingUp, 
   PiggyBank, AlertCircle, Zap, Award, LineChart, Calculator, 
   Lock, Smartphone, Lightbulb, ArrowRight, CheckCircle2,
   Flame, Eye, Settings, Download, Bell, Trophy
@@ -125,11 +125,9 @@ export function LandingPage() {
         <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-muted/40">
           <div className="container mx-auto px-4 py-4">
             <nav className="flex items-center justify-between">
-              <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-                <div className="h-10 w-10 bg-gradient-to-br from-primary via-primary to-info rounded-lg flex items-center justify-center shadow-md">
-                  <DollarSign className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <span className="text-2xl font-bold">Lumify</span>
+              <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+                <img src="/logo-wordmark.svg" alt="Lumify" className="h-9 w-auto dark:hidden" />
+                <img src="/logo-wordmark-white.svg" alt="Lumify" className="h-9 w-auto hidden dark:block" />
               </Link>
               <div className="flex items-center space-x-3">
                 <Link to="/login">
@@ -609,9 +607,9 @@ export function LandingPage() {
           <div className="container mx-auto px-4 py-12">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
               <div>
-                <div className="flex items-center space-x-2 mb-4">
-                  <DollarSign className="h-6 w-6 text-primary" />
-                  <span className="font-bold text-lg">Lumify</span>
+                <div className="flex items-center gap-2 mb-4">
+                  <img src="/logo-wordmark.svg" alt="Lumify" className="h-7 w-auto dark:hidden" />
+                  <img src="/logo-wordmark-white.svg" alt="Lumify" className="h-7 w-auto hidden dark:block" />
                 </div>
                 <p className="text-sm text-muted-foreground">Seu controle financeiro simplificado</p>
               </div>

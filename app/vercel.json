@@ -3,7 +3,7 @@
     "framework": "vite",
     "rewrites": [
       {
-        "source": "/(lumify-favicon.svg|og-image.png|og-image.svg)",
+        "source": "/(lumify-favicon.svg|favicon.png|logo-icon.svg|logo-menu.svg|logo-wordmark.svg|logo-wordmark-white.svg|og-image.png|og-image.svg)",
         "destination": "/$1"
       },
       {

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { LogIn, UserPlus, DollarSign } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 
@@ -50,10 +50,8 @@ export function AuthForm({ onLogin, onRegister }) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
-       <Link to="/" className="absolute top-4 left-4 flex items-center gap-2 text-foreground hover:text-primary transition-colors">
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-primary-foreground" />
-        </div>
+       <Link to="/" className="absolute top-4 left-4 flex items-center gap-2 text-foreground hover:opacity-90 transition-opacity">
+        <img src="/logo-icon.svg" alt="" width={32} height={32} className="rounded-lg shadow-sm" />
         <span className="text-xl font-bold">Lumify</span>
       </Link>
       <motion.div
