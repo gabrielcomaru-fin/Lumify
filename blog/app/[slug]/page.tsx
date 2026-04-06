@@ -95,10 +95,10 @@ export default async function PostPage({ params }: Props) {
     <>
       <ArticleJsonLd slug={slug} frontmatter={post.frontmatter} />
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-12">
         <article>
-          <header className="mb-10 border-b border-zinc-200 pb-8 dark:border-zinc-800">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <header className="mb-10 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm shadow-slate-200/40 sm:p-8">
+            <p className="text-sm font-medium text-slate-500">
               <time dateTime={post.frontmatter.date}>{formattedDate}</time>
               {post.frontmatter.updated ? (
                 <>
@@ -114,19 +114,19 @@ export default async function PostPage({ params }: Props) {
                 </>
               ) : null}
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-lumify-ink sm:text-4xl">
               {post.frontmatter.title}
             </h1>
-            <p className="mt-3 text-lg text-zinc-600 dark:text-zinc-300">
+            <p className="mt-4 text-lg leading-relaxed text-slate-600">
               {post.frontmatter.description}
             </p>
-            <p className="mt-4 text-sm text-zinc-500">Por {post.frontmatter.author}</p>
+            <p className="mt-4 text-sm text-slate-500">Por {post.frontmatter.author}</p>
             {post.frontmatter.tags && post.frontmatter.tags.length > 0 ? (
-              <ul className="mt-4 flex flex-wrap gap-2">
+              <ul className="mt-5 flex flex-wrap gap-2">
                 {post.frontmatter.tags.map((tag) => (
                   <li
                     key={tag}
-                    className="rounded-full bg-zinc-100 px-3 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                    className="rounded-full bg-lumify-muted px-3 py-0.5 text-xs font-semibold text-lumify-navy"
                   >
                     {tag}
                   </li>
@@ -134,26 +134,26 @@ export default async function PostPage({ params }: Props) {
               </ul>
             ) : null}
           </header>
-          <div className="prose prose-zinc max-w-none dark:prose-invert prose-headings:scroll-mt-20 prose-a:text-emerald-600 prose-a:no-underline hover:prose-a:underline dark:prose-a:text-emerald-400">
+          <div className="prose prose-slate max-w-none rounded-2xl border border-slate-200/60 bg-white px-6 py-8 prose-headings:scroll-mt-20 prose-headings:text-lumify-ink prose-a:font-medium prose-a:text-lumify-navy prose-a:no-underline hover:prose-a:text-lumify-blue hover:prose-a:underline sm:px-8 sm:py-10">
             {content}
           </div>
-          <aside className="not-prose mt-12 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-6 dark:border-emerald-900/50 dark:bg-emerald-950/30">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <aside className="not-prose mt-10 rounded-2xl border border-lumify-blue/25 bg-gradient-to-br from-lumify-muted/90 to-white p-6 shadow-sm shadow-lumify-blue/10 sm:p-8">
+            <h2 className="text-lg font-semibold text-lumify-ink">
               Coloque o plano em prática
             </h2>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
               Use o Lumify para acompanhar gastos, metas e investimentos em um só lugar.
             </p>
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap gap-3">
               <a
                 href={registerUrl.toString()}
-                className="inline-flex rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                className="inline-flex rounded-lg bg-gradient-to-r from-lumify-navy to-lumify-blue px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-lumify-blue/20 transition hover:brightness-110"
               >
                 Criar conta grátis
               </a>
               <Link
                 href="/"
-                className="inline-flex items-center rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-lumify-ink transition hover:border-lumify-blue/40 hover:bg-slate-50"
               >
                 Ver mais artigos
               </Link>
