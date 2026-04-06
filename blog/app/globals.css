@@ -3,18 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
+  --background: #f4f6fc;
+  --foreground: #0f172a;
+  --lumify-navy: #001d7b;
+  --lumify-blue: #4d78ff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-  }
-}
-
+/* Blog: tema claro por padrão (evita “tudo preto” com prefers-color-scheme: dark) */
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
+}
+
+@layer utilities {
+  .text-gradient-lumify {
+    @apply bg-gradient-to-r from-lumify-navy via-lumify-blue to-lumify-navy bg-clip-text text-transparent;
+  }
 }
