@@ -1,1 +1,0 @@
-import{c as e,l as t}from"./FinanceDataContext-DlkLLL1o.js";function n(n){t(1,arguments);var r=n||{},i=e(r.start),a=e(r.end).getTime(),o=[];if(!(i.getTime()<=a))throw RangeError(`Invalid interval`);var s=i;for(s.setHours(0,0,0,0),s.setDate(1);s.getTime()<=a;)o.push(e(s)),s.setMonth(s.getMonth()+1);return o}export{n as t};
