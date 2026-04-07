@@ -130,7 +130,11 @@ export function PlansPage() {
   };
 
   const isCurrentPlan = (planId) => {
-    if (planId === 'free') return plan === 'free';
+    return planId === plan;
+  };
+
+  const isIncludedInCurrentPlan = (planId) => {
+    if (planId === 'free') return true;
     if (planId === 'pro') return plan === 'pro' || plan === 'premium';
     if (planId === 'premium') return plan === 'premium';
     return false;
@@ -181,11 +185,15 @@ export function PlansPage() {
                 <CardFooter>
                   <Button
                     className="w-full"
-                    disabled={isCurrentPlan(p.id)}
+                    disabled={isCurrentPlan(p.id) || isIncludedInCurrentPlan(p.id)}
                     onClick={() => handleUpgradeClick(p.id)}
                     variant={p.id === 'pro' ? 'default' : 'outline'}
                   >
-                    {isCurrentPlan(p.id) ? 'Seu plano atual' : p.cta}
+                    {isCurrentPlan(p.id)
+                      ? 'Seu plano atual'
+                      : isIncludedInCurrentPlan(p.id)
+                        ? 'Incluído no seu plano'
+                        : p.cta}
                   </Button>
                 </CardFooter>
               </Card>

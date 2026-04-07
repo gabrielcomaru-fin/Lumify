@@ -22,7 +22,8 @@ function planFromPriceId(priceId) {
   const premiumId = (process.env.STRIPE_PRICE_PREMIUM_MENSAL || '').trim();
   if (priceId === premiumId) return 'premium';
   if (priceId === proId) return 'pro';
-  return 'pro';
+  console.warn('planFromPriceId: unknown priceId, defaulting to free:', priceId);
+  return 'free';
 }
 
 export default async function handler(req, res) {

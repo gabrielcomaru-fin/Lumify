@@ -47,6 +47,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { useTheme } from '@/hooks/useTheme';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { AccountForm } from '@/components/AccountForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -55,6 +56,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 // Componente para gerenciar categorias usando a mesma lógica do AccountForm
 function CategoryManager({ type }) {
     const { categories, addCategory, updateCategory, deleteCategory } = useFinance();
+    const { canSetCategoryLimit } = useSubscription();
     const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
@@ -198,10 +200,17 @@ function CategoryManager({ type }) {
                                     placeholder="0,00"
                                     value={formData.limite}
                                     onChange={handleCurrencyChange}
+                                    disabled={!canSetCategoryLimit}
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                    Defina um limite mensal para controlar seus gastos nesta categoria
-                                </p>
+                                {!canSetCategoryLimit ? (
+                                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                                        Teto de gastos por categoria é um recurso do plano Pro. <a href="/planos" className="underline font-medium">Fazer upgrade</a>
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                        Defina um limite mensal para controlar seus gastos nesta categoria
+                                    </p>
+                                )}
                             </div>
                         )}
                         
