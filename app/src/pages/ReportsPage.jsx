@@ -24,7 +24,7 @@ import { InvestmentByInstitutionChart } from '@/components/charts/InvestmentByIn
 import { AdvancedCharts } from '@/components/charts/AdvancedCharts';
 import { BenchmarkingReports } from '@/components/reports/BenchmarkingReports';
 import { SmartAlerts } from '@/components/reports/SmartAlerts';
-import { FileDown, BarChart3, Target, AlertCircle, TrendingUp, Download } from 'lucide-react';
+import { FileDown, BarChart3, Target, AlertCircle, TrendingUp, Download, Lock, Star } from 'lucide-react';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, format } from 'date-fns';
 import { formatCurrencyBRL, formatPercent } from '@/lib/format';
 import {
@@ -36,7 +36,7 @@ import {
 
 const ReportsPage = memo(function ReportsPage() {
   const { expenses, investments, categories, accounts, investmentGoal, loading, incomes } = useFinance();
-  const { canExportReports } = useSubscription();
+  const { canExportReports, canAccessAdvancedReports } = useSubscription();
   const incomeInsights = useIncomeInsights();
   const { isExporting, exportFullReport, exportExpenses, exportInvestments, exportAccounts } = useExport();
 
@@ -326,6 +326,25 @@ const ReportsPage = memo(function ReportsPage() {
           </TabsContent>
 
           <TabsContent value="insights" className="space-y-4 md:space-y-5">
+            {!canAccessAdvancedReports ? (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="text-center py-8 space-y-3">
+                    <Lock className="h-8 w-8 text-primary mx-auto" />
+                    <h3 className="font-semibold text-lg">Insights Inteligentes</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      Análises automáticas, recomendações e insights financeiros personalizados são recursos do plano Pro.
+                    </p>
+                    <Button asChild>
+                      <a href="/planos" className="inline-flex items-center gap-2">
+                        <Star className="h-4 w-4" />
+                        Ver planos
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <Card>
                 <CardHeader>
@@ -410,16 +429,56 @@ const ReportsPage = memo(function ReportsPage() {
                 </CardContent>
               </Card>
             </div>
+            )}
           </TabsContent>
 
           <TabsContent value="benchmarks" className="space-y-4 md:space-y-5">
+            {!canAccessAdvancedReports ? (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="text-center py-8 space-y-3">
+                    <Lock className="h-8 w-8 text-primary mx-auto" />
+                    <h3 className="font-semibold text-lg">Benchmarks Financeiros</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      Compare sua saúde financeira com benchmarks do mercado. Recurso disponível no plano Pro.
+                    </p>
+                    <Button asChild>
+                      <a href="/planos" className="inline-flex items-center gap-2">
+                        <Star className="h-4 w-4" />
+                        Ver planos
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
             <BenchmarkingReports 
               userMetrics={financialHealth} 
               userProfile={{ age: 30, experience: 'intermediate' }}
             />
+            )}
           </TabsContent>
 
           <TabsContent value="scenarios" className="space-y-4 md:space-y-5">
+            {!canAccessAdvancedReports ? (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="text-center py-8 space-y-3">
+                    <Lock className="h-8 w-8 text-primary mx-auto" />
+                    <h3 className="font-semibold text-lg">Cenários Financeiros</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      Simule cenários de investimento e gastos para planejar seu futuro. Recurso do plano Pro.
+                    </p>
+                    <Button asChild>
+                      <a href="/planos" className="inline-flex items-center gap-2">
+                        <Star className="h-4 w-4" />
+                        Ver planos
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -463,15 +522,36 @@ const ReportsPage = memo(function ReportsPage() {
                 </CardContent>
               </Card>
             </div>
+            )}
           </TabsContent>
 
           <TabsContent value="alerts" className="space-y-4 md:space-y-5">
+            {!canAccessAdvancedReports ? (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="text-center py-8 space-y-3">
+                    <Lock className="h-8 w-8 text-primary mx-auto" />
+                    <h3 className="font-semibold text-lg">Alertas Inteligentes</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      Alertas automáticos sobre sua saúde financeira são um recurso do plano Pro.
+                    </p>
+                    <Button asChild>
+                      <a href="/planos" className="inline-flex items-center gap-2">
+                        <Star className="h-4 w-4" />
+                        Ver planos
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
             <SmartAlerts 
               insights={insights}
               recommendations={recommendations}
               financialHealth={financialHealth}
               trends={trends}
             />
+            )}
           </TabsContent>
         </Tabs>
       </div>
