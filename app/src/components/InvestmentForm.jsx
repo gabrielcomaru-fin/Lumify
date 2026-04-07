@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Plus, TrendingUp, Target, ShieldCheck, HelpCircle, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceDataContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 export function InvestmentForm({ onSubmit, investmentToEdit, onOpenChange, isOpen }) {
   const { investmentGoal, handleSetInvestmentGoal, categories, accounts } = useFinance();
+  const { canAccessAdvancedGoals } = useSubscription();
   const { toast } = useToast();
 
   const investmentCategories = categories.filter(c => c.tipo === 'investimento');
@@ -338,38 +340,48 @@ export function InvestmentForm({ onSubmit, investmentToEdit, onOpenChange, isOpe
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isGoalDialogOpen} onOpenChange={setIsGoalDialogOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline">
-            <Target className="w-4 h-4 mr-2" />
-            Definir Meta
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Definir Meta de Aportes</DialogTitle>
-            <DialogDescription>
-              Defina sua meta mensal de investimentos para acompanhar seu progresso.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleGoalSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="goalAmount">Meta Mensal (R$)</Label>
-              <CurrencyInput
-                id="goalAmount"
-                placeholder="0,00"
-                value={goalFormData.goal}
-                onChange={handleGoalCurrencyChange}
-                ref={goalRef}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full">
+      {canAccessAdvancedGoals ? (
+        <Dialog open={isGoalDialogOpen} onOpenChange={setIsGoalDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <Target className="w-4 h-4 mr-2" />
               Definir Meta
             </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Definir Meta de Aportes</DialogTitle>
+              <DialogDescription>
+                Defina sua meta mensal de investimentos para acompanhar seu progresso.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleGoalSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="goalAmount">Meta Mensal (R$)</Label>
+                <CurrencyInput
+                  id="goalAmount"
+                  placeholder="0,00"
+                  value={goalFormData.goal}
+                  onChange={handleGoalCurrencyChange}
+                  ref={goalRef}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Definir Meta
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Button variant="outline" asChild>
+          <Link to="/planos" className="inline-flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            Definir Meta
+            <Badge variant="secondary" className="ml-1 text-xs">Pro</Badge>
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }
