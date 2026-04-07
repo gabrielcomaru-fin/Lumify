@@ -49,7 +49,13 @@ export function SubscriptionProvider({ children }) {
       status,
       isPro,
       isPremium,
+      // Pro features
       canAddAccount: isPro,
+      canSetCategoryLimit: isPro,
+      canAccessAdvancedReports: isPro,
+      canAccessTips: isPro,
+      canAccessAdvancedGoals: isPro,
+      // Premium features
       canAccessCalculator: isPremium,
       canAccessProjection: isPremium,
       canExportReports: isPremium,

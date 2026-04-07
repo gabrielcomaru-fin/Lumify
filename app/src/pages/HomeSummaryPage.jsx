@@ -13,8 +13,9 @@ import { FinancialHealthMeter } from '@/components/dashboard/FinancialHealthMete
 import { QuickActionCard } from '@/components/dashboard/QuickActionCard';
 import { SelfComparisonCard } from '@/components/dashboard/SelfComparisonCard';
 import { FinancialJourneyCard } from '@/components/dashboard/FinancialJourneyCard';
-import { TrendingUp, TrendingDown, Target, AlertTriangle, PiggyBank, Lightbulb, Trophy, DollarSign, Settings, Eye, EyeOff, LayoutGrid, Minimize2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, AlertTriangle, PiggyBank, Lightbulb, Trophy, DollarSign, Settings, Eye, EyeOff, LayoutGrid, Minimize2, Star, Lock } from 'lucide-react';
 import { useGamification } from '@/contexts/GamificationContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, parseISO, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -23,6 +24,7 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
   const { expenses, investments, categories, accounts, investmentGoal, totalPatrimony, totalInvestmentBalance } = useFinance();
   const incomeInsights = useIncomeInsights();
   const { evaluateAchievements } = useGamification();
+  const { canAccessTips } = useSubscription();
 
   const { startDate, endDate, filter } = usePeriodBounds();
 
@@ -337,63 +339,89 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
         {/* Seção de insights e jornada */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
           {/* Insights Financeiros Consolidados */}
-          {(incomeInsights.recommendations.length > 0 || educationTips.length > 0) && (
-            <Card>
+          {canAccessTips ? (
+            (incomeInsights.recommendations.length > 0 || educationTips.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-primary"/>
+                    Insights Financeiros
+                  </CardTitle>
+                  <CardDescription>Recomendações e dicas personalizadas para sua situação</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {incomeInsights.recommendations.length > 0 && (
+                    <div className="space-y-3">
+                      {incomeInsights.recommendations.slice(0, 3).map((rec, i) => (
+                        <div key={i} className={`p-4 rounded-lg text-sm flex items-start gap-3 ${
+                          rec.type === 'warning' ? 'bg-error-muted border border-error' :
+                          rec.type === 'success' ? 'bg-success-muted border border-success' :
+                          'bg-info-muted border border-info'
+                        }`}>
+                          {rec.type === 'warning' && <AlertTriangle className="h-5 w-5 text-error mt-0.5 flex-shrink-0"/>}
+                          {rec.type === 'success' && <Trophy className="h-5 w-5 text-success mt-0.5 flex-shrink-0"/>}
+                          {rec.type === 'tip' && <Lightbulb className="h-5 w-5 text-info mt-0.5 flex-shrink-0"/>}
+                          <div>
+                            <p className="font-medium text-card-foreground">{rec.message}</p>
+                            {rec.action && (
+                              <p className="text-xs text-muted-foreground mt-1">{rec.action}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {educationTips.length > 0 && (
+                    <div className="space-y-3">
+                      {educationTips.map((tip, i) => (
+                        <div key={i} className={`p-4 rounded-lg text-sm flex items-start gap-3 transition-colors duration-200 ${
+                          tip.type === 'warning' ? 'bg-warning/10 border border-warning/30 hover:bg-warning/20' :
+                          tip.type === 'success' ? 'bg-success/10 border border-success/30 hover:bg-success/20' :
+                          'bg-primary/10 border border-primary/30 hover:bg-primary/20'
+                        }`}>
+                          {tip.type === 'warning' && <span className="text-lg">⚠️</span>}
+                          {tip.type === 'success' && <span className="text-lg">✨</span>}
+                          {tip.type === 'tip' && <span className="text-lg">💡</span>}
+                          <div className="flex-1">
+                            <span className="text-card-foreground">{tip.message}</span>
+                            {tip.type === 'tip' && (
+                              <p className="text-xs text-muted-foreground italic mt-1">
+                                Pequenos passos levam a grandes conquistas.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          ) : (
+            <Card className="border-primary/30 bg-primary/5">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-primary"/>
+                  <Lightbulb className="h-5 w-5 text-primary"/>
                   Insights Financeiros
                 </CardTitle>
-                <CardDescription>Recomendações e dicas personalizadas para sua situação</CardDescription>
+                <CardDescription>Dicas e recomendações personalizadas para você</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Recomendações baseadas em dados financeiros */}
-                {incomeInsights.recommendations.length > 0 && (
-                  <div className="space-y-3">
-                    {incomeInsights.recommendations.slice(0, 3).map((rec, i) => (
-                      <div key={i} className={`p-4 rounded-lg text-sm flex items-start gap-3 ${
-                        rec.type === 'warning' ? 'bg-error-muted border border-error' :
-                        rec.type === 'success' ? 'bg-success-muted border border-success' :
-                        'bg-info-muted border border-info'
-                      }`}>
-                        {rec.type === 'warning' && <AlertTriangle className="h-5 w-5 text-error mt-0.5 flex-shrink-0"/>}
-                        {rec.type === 'success' && <Trophy className="h-5 w-5 text-success mt-0.5 flex-shrink-0"/>}
-                        {rec.type === 'tip' && <Lightbulb className="h-5 w-5 text-info mt-0.5 flex-shrink-0"/>}
-                        <div>
-                          <p className="font-medium text-card-foreground">{rec.message}</p>
-                          {rec.action && (
-                            <p className="text-xs text-muted-foreground mt-1">💡 {rec.action}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+              <CardContent>
+                <div className="text-center py-4 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                    <Lock className="h-6 w-6 text-primary" />
                   </div>
-                )}
-
-                {/* Dicas educativas humanizadas */}
-                {educationTips.length > 0 && (
-                  <div className="space-y-3">
-                    {educationTips.map((tip, i) => (
-                      <div key={i} className={`p-4 rounded-lg text-sm flex items-start gap-3 transition-colors duration-200 ${
-                        tip.type === 'warning' ? 'bg-warning/10 border border-warning/30 hover:bg-warning/20' :
-                        tip.type === 'success' ? 'bg-success/10 border border-success/30 hover:bg-success/20' :
-                        'bg-primary/10 border border-primary/30 hover:bg-primary/20'
-                      }`}>
-                        {tip.type === 'warning' && <span className="text-lg">⚠️</span>}
-                        {tip.type === 'success' && <span className="text-lg">✨</span>}
-                        {tip.type === 'tip' && <span className="text-lg">💡</span>}
-                        <div className="flex-1">
-                          <span className="text-card-foreground">{tip.message}</span>
-                          {tip.type === 'tip' && (
-                            <p className="text-xs text-muted-foreground italic mt-1">
-                              Pequenos passos levam a grandes conquistas.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  <p className="text-sm text-muted-foreground">
+                    Dicas financeiras automáticas são um recurso do plano Pro.
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/planos" className="inline-flex items-center gap-2">
+                      <Star className="h-4 w-4" />
+                      Fazer upgrade
+                    </Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
