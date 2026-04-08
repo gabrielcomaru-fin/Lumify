@@ -7,7 +7,8 @@ import {
   BarChart3, Target, ShieldCheck, Star, TrendingUp, 
   PiggyBank, AlertCircle, Zap, Award, LineChart, Calculator, 
   Lock, Smartphone, Lightbulb, ArrowRight, CheckCircle2,
-  Flame, Eye, Settings, Download, Bell, Trophy
+  Flame, Eye, Settings, Download, Bell, Trophy,
+  BookOpen, Sparkles, ExternalLink
 } from 'lucide-react';
 
 export function LandingPage() {
@@ -130,6 +131,11 @@ export function LandingPage() {
                 <img src="/logo-wordmark-white.svg" alt="Lumify" className="h-9 w-auto hidden dark:block" />
               </Link>
               <div className="flex items-center space-x-3">
+                <a href="https://blog.lumify.app.br" target="_blank" rel="noopener noreferrer">
+                  <Button variant="ghost" className="hidden sm:inline-flex gap-2">
+                    <BookOpen className="h-4 w-4" /> Blog
+                  </Button>
+                </a>
                 <Link to="/login">
                   <Button variant="ghost" className="hidden sm:inline-flex">Entrar</Button>
                 </Link>
@@ -143,7 +149,7 @@ export function LandingPage() {
 
         <main className="container mx-auto px-4">
           
-          {/* HERO SECTION */}
+          {/* HERO SECTION — Boas-vindas */}
           <motion.section
             className="py-20 md:py-32 text-center"
             initial="initial"
@@ -151,22 +157,23 @@ export function LandingPage() {
             variants={staggerContainer}
           >
             <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border bg-primary/5 border-primary/20 mb-8">
-              <Star className="h-4 w-4 text-yellow-500" />
-              <span className="text-sm font-medium">Confiado por milhares de brasileiros</span>
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Bem-vindo ao Lumify</span>
             </motion.div>
 
             <motion.h1 
               variants={fadeIn}
               className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-tight"
             >
-              Seu <span className="bg-gradient-to-r from-primary via-info to-primary bg-clip-text text-transparent">controle financeiro</span> simplificado
+              Sua jornada para uma <span className="bg-gradient-to-r from-primary via-info to-primary bg-clip-text text-transparent">vida financeira saudável</span> começa aqui
             </motion.h1>
 
             <motion.p 
               variants={fadeIn}
-              className="text-lg md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed"
+              className="text-lg md:text-xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed"
             >
-              Organize gastos, acompanhe investimentos, crie projeções com IA e atinja suas metas financeiras em uma plataforma moderna, segura e intuitiva.
+              O Lumify é um ecossistema completo para quem quer entender, organizar e fazer o dinheiro trabalhar a seu favor. 
+              Aprenda no blog, coloque em prática no app — tudo em um só lugar.
             </motion.p>
 
             <motion.div 
@@ -175,14 +182,16 @@ export function LandingPage() {
             >
               <Link to="/register">
                 <Button size="lg" className="shadow-lg hover:shadow-xl transition-shadow duration-200">
-                  Começar Grátis <ArrowRight className="ml-2 h-4 w-4" />
+                  Acessar o App <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/login">
-                <Button size="lg" variant="outline" className="border-2">
-                  Ver Demo
+              <a href="https://blog.lumify.app.br" target="_blank" rel="noopener noreferrer">
+                <Button size="lg" variant="outline" className="border-2 gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Ler o Blog
+                  <ExternalLink className="h-3 w-3 opacity-50" />
                 </Button>
-              </Link>
+              </a>
             </motion.div>
 
             <motion.div 
@@ -191,15 +200,15 @@ export function LandingPage() {
             >
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Sem cartão de crédito</span>
+                <span>100% gratuito para começar</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Cancele quando quiser</span>
+                <span>Conteúdo educativo no blog</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Dados sempre seus</span>
+                <span>Seus dados sempre protegidos</span>
               </div>
             </motion.div>
           </motion.section>
@@ -218,6 +227,100 @@ export function LandingPage() {
                 <p className="text-sm text-muted-foreground mt-2">{metric.label}</p>
               </motion.div>
             ))}
+          </motion.section>
+
+          {/* ECOSSISTEMA — App + Blog */}
+          <motion.section
+            className="py-20"
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+          >
+            <div className="text-center mb-12">
+              <motion.h2 variants={fadeIn} className="text-3xl md:text-5xl font-bold mb-4">
+                Dois caminhos, um objetivo
+              </motion.h2>
+              <motion.p variants={fadeIn} className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Aprenda com conteúdo de qualidade e coloque tudo em prática com ferramentas feitas para você
+              </motion.p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              <motion.div
+                variants={fadeIn}
+                className="group relative p-8 rounded-2xl border bg-card hover:shadow-xl transition-all duration-300 hover:border-primary/50 overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/10 to-transparent rounded-bl-full" />
+                <div className="relative">
+                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-info p-3 mb-6 text-white group-hover:scale-110 transition-transform">
+                    <BarChart3 className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3">Lumify App</h3>
+                  <p className="text-muted-foreground mb-6 leading-relaxed">
+                    Controle gastos, acompanhe investimentos, crie projeções com IA e atinja suas metas financeiras. 
+                    Dashboard inteligente, gamificação e relatórios avançados.
+                  </p>
+                  <ul className="space-y-2 mb-8 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Dashboard com health score</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Insights e projeções com IA</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Gamificação com streaks e badges</span>
+                    </li>
+                  </ul>
+                  <Link to="/register">
+                    <Button className="w-full shadow-lg">
+                      Começar Grátis <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </motion.div>
+
+              <motion.div
+                variants={fadeIn}
+                className="group relative p-8 rounded-2xl border bg-card hover:shadow-xl transition-all duration-300 hover:border-primary/50 overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-info/10 to-transparent rounded-bl-full" />
+                <div className="relative">
+                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-info to-cyan-500 p-3 mb-6 text-white group-hover:scale-110 transition-transform">
+                    <BookOpen className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3">Lumify Blog</h3>
+                  <p className="text-muted-foreground mb-6 leading-relaxed">
+                    Conteúdo gratuito e educativo sobre finanças pessoais, investimentos, planejamento 
+                    e hábitos que transformam sua relação com dinheiro.
+                  </p>
+                  <ul className="space-y-2 mb-8 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Artigos para iniciantes e avançados</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Guias práticos e passo a passo</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Dicas de planejamento e economia</span>
+                    </li>
+                  </ul>
+                  <a href="https://blog.lumify.app.br" target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" className="w-full border-2 gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      Explorar o Blog
+                      <ExternalLink className="h-3 w-3 opacity-50" />
+                    </Button>
+                  </a>
+                </div>
+              </motion.div>
+            </div>
           </motion.section>
 
           {/* FEATURES GRID */}
@@ -521,7 +624,7 @@ export function LandingPage() {
                 Pronto para transformar suas finanças?
               </h2>
               <p className="text-xl text-muted-foreground mb-8">
-                Comece grátis e veja a diferença em seus hábitos financeiros
+                Comece grátis no app ou aprenda mais no nosso blog — o importante é dar o primeiro passo
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/register">
@@ -529,6 +632,13 @@ export function LandingPage() {
                     Começar Grátis Agora <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
+                <a href="https://blog.lumify.app.br" target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" variant="outline" className="border-2 gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Conhecer o Blog
+                    <ExternalLink className="h-3 w-3 opacity-50" />
+                  </Button>
+                </a>
               </div>
             </motion.div>
           </motion.section>
@@ -588,16 +698,33 @@ export function LandingPage() {
             viewport={{ once: true }}
             variants={staggerContainer}
           >
+            <motion.div variants={fadeIn} className="max-w-2xl mx-auto mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Sua vida financeira merece atenção
+              </h2>
+              <p className="text-muted-foreground">
+                Seja aprendendo no blog ou organizando tudo no app, o Lumify está aqui para te acompanhar nessa jornada.
+              </p>
+            </motion.div>
             <motion.div
               variants={fadeIn}
-              className="relative inline-block"
+              className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-primary via-info to-primary blur-2xl opacity-30 rounded-full" />
-              <Link to="/register">
-                <Button size="lg" className="relative shadow-2xl hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1)] transition-all">
-                  Começar Grátis Agora <ArrowRight className="ml-2 h-4 w-4" />
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary via-info to-primary blur-2xl opacity-30 rounded-full" />
+                <Link to="/register">
+                  <Button size="lg" className="relative shadow-2xl hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1)] transition-all">
+                    Começar Grátis Agora <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+              <a href="https://blog.lumify.app.br" target="_blank" rel="noopener noreferrer">
+                <Button size="lg" variant="ghost" className="gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Ler o Blog
+                  <ExternalLink className="h-3 w-3 opacity-50" />
                 </Button>
-              </Link>
+              </a>
             </motion.div>
           </motion.section>
         </main>
@@ -625,7 +752,7 @@ export function LandingPage() {
                 <h4 className="font-semibold mb-4">Empresa</h4>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li><a href="#" className="hover:text-foreground transition">Sobre</a></li>
-                  <li><a href="#" className="hover:text-foreground transition">Blog</a></li>
+                  <li><a href="https://blog.lumify.app.br" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition">Blog</a></li>
                   <li><a href="#" className="hover:text-foreground transition">Contato</a></li>
                 </ul>
               </div>
