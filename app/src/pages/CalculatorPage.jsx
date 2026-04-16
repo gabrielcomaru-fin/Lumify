@@ -34,15 +34,18 @@ export function CalculatorPage() {
   const calculate = () => {
     const initial = parseCurrency(calcData.initialAmount);
     const monthly = parseCurrency(calcData.monthlyContribution);
-    const rate = parseFloat(calcData.annualRate) / 100 / 12;
+    const annualRateDecimal = parseFloat(calcData.annualRate) / 100;
     const years = parseInt(calcData.years);
     const months = years * 12;
 
-    if (isNaN(rate) || isNaN(months) || months <= 0) {
+    if (isNaN(annualRateDecimal) || isNaN(months) || months <= 0) {
       setResult(null);
       setChartData([]);
       return;
     }
+
+    // Taxa mensal equivalente composta: (1 + r_anual)^(1/12) - 1
+    const rate = Math.pow(1 + annualRateDecimal, 1 / 12) - 1;
 
     let total = initial;
     const newChartData = [];
@@ -55,7 +58,7 @@ export function CalculatorPage() {
             });
         }
         if (i < months) {
-          total = total * (1 + rate) + monthly;
+          total = rate === 0 ? total + monthly : total * (1 + rate) + monthly;
         }
     }
 
@@ -124,6 +127,7 @@ export function CalculatorPage() {
               <div className="space-y-2">
                 <Label htmlFor="annualRate">Rendimento Anual (%)</Label>
                 <Input id="annualRate" type="number" value={calcData.annualRate} onChange={(e) => setCalcData({ ...calcData, annualRate: e.target.value })} />
+                <p className="text-xs text-muted-foreground">Taxa convertida para mensal equivalente composta</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="years">Período (anos)</Label>

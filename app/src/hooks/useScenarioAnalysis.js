@@ -73,9 +73,13 @@ export const useScenarioAnalysis = () => {
     const monthlyReturn = Math.pow(1 + annualReturn, 1/12) - 1;
     const months = years * 12;
     
-    // Fórmula de valor futuro com contribuições mensais
-    const futureValue = initialValue * Math.pow(1 + monthlyReturn, months) + 
-                       monthlyContribution * ((Math.pow(1 + monthlyReturn, months) - 1) / monthlyReturn);
+    let futureValue;
+    if (monthlyReturn === 0) {
+      futureValue = initialValue + monthlyContribution * months;
+    } else {
+      futureValue = initialValue * Math.pow(1 + monthlyReturn, months) + 
+                    monthlyContribution * ((Math.pow(1 + monthlyReturn, months) - 1) / monthlyReturn);
+    }
     
     return {
       totalValue: futureValue,
@@ -103,9 +107,25 @@ export const useScenarioAnalysis = () => {
     return breakdown;
   }, []);
 
+  // Calcula a média mensal de gastos a partir do histórico
+  const computeAverageMonthlyExpenses = useCallback((expenseList) => {
+    if (!expenseList || expenseList.length === 0) return 0;
+    const totalsByMonthKey = expenseList.reduce((acc, exp) => {
+      const d = new Date(exp.data);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!acc[key]) acc[key] = 0;
+      acc[key] += exp.valor || 0;
+      return acc;
+    }, {});
+    const monthKeys = Object.keys(totalsByMonthKey);
+    if (monthKeys.length === 0) return 0;
+    const sumOfMonthlyTotals = monthKeys.reduce((s, k) => s + totalsByMonthKey[k], 0);
+    return sumOfMonthlyTotals / monthKeys.length;
+  }, []);
+
   // Análise de cenários de gastos
   const generateSpendingScenarios = useCallback((data) => {
-    const currentMonthlyExpenses = data.expenses.reduce((sum, expense) => sum + expense.valor, 0);
+    const currentMonthlyExpenses = computeAverageMonthlyExpenses(data.expenses);
     
     const scenarios = {
       current: {
@@ -132,35 +152,35 @@ export const useScenarioAnalysis = () => {
     };
     
     return scenarios;
-  }, []);
+  }, [computeAverageMonthlyExpenses]);
 
   // Análise de cenários de renda
   const generateIncomeScenarios = useCallback((data) => {
-    const currentMonthlyInvestment = data.investments.reduce((sum, investment) => sum + investment.valor_aporte, 0);
+    const currentMonthlyInvestment = computeAverageMonthlyInvestment(data.investments);
     
     const scenarios = {
       current: {
-        name: 'Renda Atual',
-        description: 'Manter o nível atual de investimentos',
+        name: 'Aporte Mensal Atual',
+        description: 'Manter o nível atual de aportes (média mensal histórica)',
         monthlyInvestment: currentMonthlyInvestment,
         annualInvestment: currentMonthlyInvestment * 12
       },
       increased: {
         name: 'Aumento de 20%',
-        description: 'Aumentar investimentos em 20% (promoção, renda extra)',
+        description: 'Aumentar aportes em 20% (promoção, renda extra)',
         monthlyInvestment: currentMonthlyInvestment * 1.2,
         annualInvestment: currentMonthlyInvestment * 1.2 * 12
       },
       decreased: {
         name: 'Redução de 20%',
-        description: 'Reduzir investimentos em 20% (emergência, mudanças)',
+        description: 'Reduzir aportes em 20% (emergência, mudanças)',
         monthlyInvestment: currentMonthlyInvestment * 0.8,
         annualInvestment: currentMonthlyInvestment * 0.8 * 12
       }
     };
     
     return scenarios;
-  }, []);
+  }, [computeAverageMonthlyInvestment]);
 
   // Análise de cenários de inflação
   const generateInflationScenarios = useCallback((data) => {
@@ -192,7 +212,7 @@ export const useScenarioAnalysis = () => {
   const generateRetirementScenarios = useCallback((data, currentAge = 30, retirementAge = 65) => {
     const yearsToRetirement = retirementAge - currentAge;
     const currentPatrimony = data.accounts.reduce((sum, account) => sum + (account.saldo || 0), 0);
-    const currentMonthlyInvestment = data.investments.reduce((sum, investment) => sum + investment.valor_aporte, 0);
+    const currentMonthlyInvestment = computeAverageMonthlyInvestment(data.investments);
     
     const scenarios = {
       early: {
@@ -222,20 +242,22 @@ export const useScenarioAnalysis = () => {
     };
     
     return scenarios;
-  }, []);
+  }, [computeAverageMonthlyInvestment]);
 
-  // Calcular investimento mensal necessário
+  // Calcular investimento mensal necessário — usa taxa mensal equivalente composta (coerente com calculateProjection)
   const calculateRequiredMonthlyInvestment = useCallback((currentValue, annualReturn, years, targetValue) => {
-    const monthlyReturn = annualReturn / 12;
+    const monthlyReturn = Math.pow(1 + annualReturn, 1 / 12) - 1;
     const months = years * 12;
     
-    // Fórmula para calcular contribuição mensal necessária
+    if (months <= 0) return 0;
+
     const futureValueOfCurrent = currentValue * Math.pow(1 + monthlyReturn, months);
     const remainingValue = targetValue - futureValueOfCurrent;
     
     if (remainingValue <= 0) return 0;
     
-    const monthlyContribution = remainingValue / ((Math.pow(1 + monthlyReturn, months) - 1) / monthlyReturn);
+    const annuityFactor = (Math.pow(1 + monthlyReturn, months) - 1) / monthlyReturn;
+    const monthlyContribution = remainingValue / annuityFactor;
     
     return Math.max(monthlyContribution, 0);
   }, []);
@@ -243,7 +265,7 @@ export const useScenarioAnalysis = () => {
   // Análise de cenários de emergência
   const generateEmergencyScenarios = useCallback((data) => {
     const currentPatrimony = data.accounts.reduce((sum, account) => sum + (account.saldo || 0), 0);
-    const monthlyExpenses = data.expenses.reduce((sum, expense) => sum + expense.valor, 0);
+    const monthlyExpenses = computeAverageMonthlyExpenses(data.expenses);
     
     const scenarios = {
       jobLoss: {
@@ -271,7 +293,7 @@ export const useScenarioAnalysis = () => {
     };
     
     return scenarios;
-  }, []);
+  }, [computeAverageMonthlyExpenses]);
 
   // Cenários memoizados
   const investmentScenarios = useMemo(() => {

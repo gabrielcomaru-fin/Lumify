@@ -11,9 +11,11 @@ import { usePeriodBounds } from '@/hooks/usePeriodBounds';
 import { CompactHeader } from '@/components/CompactHeader';
 import { FinancialHealthMeter } from '@/components/dashboard/FinancialHealthMeter';
 import { QuickActionCard } from '@/components/dashboard/QuickActionCard';
-import { SelfComparisonCard } from '@/components/dashboard/SelfComparisonCard';
 import { FinancialJourneyCard } from '@/components/dashboard/FinancialJourneyCard';
-import { TrendingUp, TrendingDown, Target, AlertTriangle, PiggyBank, Lightbulb, Trophy, DollarSign, Settings, Eye, EyeOff, LayoutGrid, Minimize2, Star, Lock } from 'lucide-react';
+import {
+  Target, AlertTriangle, Lightbulb, Trophy, DollarSign,
+  Settings, LayoutGrid, Minimize2, CheckCircle2, Circle, ArrowRight,
+} from 'lucide-react';
 import { useGamification } from '@/contexts/GamificationContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,16 +23,18 @@ import { startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, parseISO, for
 import { ptBR } from 'date-fns/locale';
 
 const HomeSummaryPage = memo(function HomeSummaryPage() {
-  const { expenses, investments, categories, accounts, investmentGoal, totalPatrimony, totalInvestmentBalance } = useFinance();
+  const {
+    expenses, investments, incomes, accounts,
+    investmentGoal, totalPatrimony,
+  } = useFinance();
   const incomeInsights = useIncomeInsights();
   const { evaluateAchievements } = useGamification();
   const { canAccessTips } = useSubscription();
 
   const { startDate, endDate, filter } = usePeriodBounds();
-
-  // Focus Mode - modo simplificado
   const [focusMode, setFocusMode] = useState(false);
 
+  // ─── Dados filtrados pelo período ────────────────────────────────────────────
   const filteredExpenses = useMemo(() => expenses.filter(exp => {
     const d = parseISO(exp.data); return d >= startDate && d <= endDate;
   }), [expenses, startDate, endDate]);
@@ -40,11 +44,11 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
   }), [investments, startDate, endDate]);
 
   const totalExpenses = filteredExpenses.reduce((s, e) => s + e.valor, 0);
-  const totalPaid = filteredExpenses.filter(e => e.pago).reduce((s, e) => s + e.valor, 0);
+  const totalPaid    = filteredExpenses.filter(e => e.pago).reduce((s, e) => s + e.valor, 0);
   const totalPending = filteredExpenses.filter(e => !e.pago).reduce((s, e) => s + e.valor, 0);
   const totalInvested = filteredInvestments.reduce((s, i) => s + i.valor_aporte, 0);
 
-  // Meta mensal acumulada para o período
+  // ─── Meta acumulada para o período ───────────────────────────────────────────
   const periodMonths = useMemo(() => {
     const { dateRange, periodType, year } = filter;
     if (dateRange && dateRange.from) {
@@ -62,24 +66,33 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
     return 1;
   }, [filter]);
 
-  const periodGoal = (Number(investmentGoal) || 0) * periodMonths;
-  const goalProgress = periodGoal > 0 ? (totalInvested / periodGoal) * 100 : 0;
+  const periodGoal    = (Number(investmentGoal) || 0) * periodMonths;
+  const goalProgress  = periodGoal > 0 ? (totalInvested / periodGoal) * 100 : 0;
 
-  // Taxa de poupança do período
-  const savingsRate = (totalInvested + totalPaid) > 0 ? (totalInvested / (totalInvested + totalPaid)) * 100 : 0;
+  const periodLabel = useMemo(() => {
+    const { dateRange, periodType } = filter;
+    if (dateRange && dateRange.from) return 'do Período';
+    if (periodType === 'yearly') return 'do Ano';
+    return 'do Mês';
+  }, [filter]);
 
-  // Últimos 6 meses com meta batida
+  const savingsRate = (totalInvested + totalPaid) > 0
+    ? (totalInvested / (totalInvested + totalPaid)) * 100
+    : 0;
+
+  // ─── Série dos últimos 6 meses (streak de metas) ─────────────────────────────
   const series6 = useMemo(() => {
     const goal = Number(investmentGoal) || 0;
     const last6 = eachMonthOfInterval({ start: subMonths(new Date(), 5), end: new Date() });
     return last6.map(m => {
       const s = startOfMonth(m), e = endOfMonth(m);
-      const inv = investments.filter(i => { const d = parseISO(i.data); return d >= s && d <= e; }).reduce((sum, i) => sum + i.valor_aporte, 0);
+      const inv = investments
+        .filter(i => { const d = parseISO(i.data); return d >= s && d <= e; })
+        .reduce((sum, i) => sum + i.valor_aporte, 0);
       return { label: format(m, 'MMM/yy', { locale: ptBR }), invested: inv, achieved: goal > 0 ? inv >= goal : false };
     });
   }, [investments, investmentGoal]);
 
-  // Fração do período decorrido (0-1)
   const periodElapsed = useMemo(() => {
     const now = new Date();
     const total = endDate.getTime() - startDate.getTime();
@@ -87,7 +100,6 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
     return total > 0 ? elapsed / total : 1;
   }, [startDate, endDate]);
 
-  // Streak de metas batidas (dos últimos para trás)
   const investStreak = useMemo(() => {
     let s = 0;
     for (let i = series6.length - 1; i >= 0; i--) {
@@ -100,11 +112,52 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
     evaluateAchievements({ monthlyStreak: investStreak });
   }, [investStreak, evaluateAchievements]);
 
-  // Dicas educativas dinâmicas
+  // ─── Detecção de usuário novo ─────────────────────────────────────────────────
+  const isNewUser = expenses.length === 0 && investments.length === 0;
+
+  const onboardingSteps = useMemo(() => [
+    {
+      id: 'income',
+      label: 'Registre uma receita',
+      description: 'Informe sua renda para ter uma visão completa do seu orçamento.',
+      done: incomes && incomes.length > 0,
+      href: '/receitas',
+      cta: 'Adicionar receita',
+    },
+    {
+      id: 'expense',
+      label: 'Adicione uma despesa',
+      description: 'Controle seus gastos e entenda para onde vai seu dinheiro.',
+      done: expenses.length > 0,
+      href: '/gastos',
+      cta: 'Adicionar despesa',
+    },
+    {
+      id: 'goal',
+      label: 'Defina sua meta mensal',
+      description: 'Uma meta de investimento te mantém focado e disciplinado.',
+      done: Number(investmentGoal) > 0,
+      href: '/configuracoes',
+      cta: 'Definir meta',
+    },
+    {
+      id: 'investment',
+      label: 'Registre seu primeiro investimento',
+      description: 'Acompanhe o crescimento do seu patrimônio ao longo do tempo.',
+      done: investments.length > 0,
+      href: '/investimentos',
+      cta: 'Adicionar investimento',
+    },
+  ], [incomes, expenses, investmentGoal, investments]);
+
+  const completedSteps = onboardingSteps.filter(s => s.done).length;
+
+  // ─── Dicas educativas (com guard: sem dados não gera dicas vazias) ────────────
   const educationTips = useMemo(() => {
+    if (expenses.length === 0 && investments.length === 0) return [];
+
     const tips = [];
 
-    // Meta vs período decorrido
     if (periodGoal > 0) {
       const expected = periodElapsed * 100;
       if (goalProgress >= 100) {
@@ -116,25 +169,25 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
       }
     }
 
-    // Pendências
     if (totalPending > 0 && totalPending >= totalPaid * 0.5) {
       tips.push({ type: 'warning', message: 'Pendências elevadas neste período. Priorize quitar para liberar fluxo para os aportes.' });
     }
 
-    // Taxa de poupança
     if (savingsRate < 15) {
       tips.push({ type: 'tip', message: 'Sua taxa de poupança está baixa. Avalie reduzir uma categoria de gasto e redirecionar a diferença para aportes.' });
     } else if (savingsRate >= 25) {
       tips.push({ type: 'success', message: 'Excelente taxa de poupança! Considere automatizar aportes para manter esse padrão.' });
     }
 
-    // Hábito (streak)
     if (investStreak >= 2) {
       tips.push({ type: 'success', message: `Ótimo hábito! Você bateu a meta por ${investStreak} meses seguidos.` });
     }
 
     return tips.slice(0, 3);
-  }, [goalProgress, periodElapsed, periodGoal, totalPending, totalPaid, savingsRate, investStreak]);
+  }, [expenses, investments, goalProgress, periodElapsed, periodGoal, totalPending, totalPaid, savingsRate, investStreak]);
+
+  // Seção de dicas só aparece se Pro e tiver conteúdo relevante
+  const hasTipsContent = canAccessTips && (incomeInsights.recommendations.length > 0 || educationTips.length > 0);
 
   return (
     <>
@@ -142,14 +195,15 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
         <title>Resumo Geral - Lumify</title>
       </Helmet>
       <div className="space-y-4 md:space-y-5 page-top">
-        <CompactHeader 
-          title="Olá! 👋"
+
+        {/* ── Cabeçalho ────────────────────────────────────────────────────── */}
+        <CompactHeader
+          title="Olá!"
           subtitle="Aqui está seu resumo financeiro"
         >
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <CompactPeriodFilter />
-              {/* Toggle Focus Mode */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -170,25 +224,87 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
                 )}
               </Button>
             </div>
-            <div className="text-right">
-              <div className="flex items-center gap-2 justify-end">
-                <div>
-                  <div className="text-2xl font-bold text-primary">R$ {totalPatrimony.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-                  <p className="text-sm text-muted-foreground">Patrimônio Total</p>
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <div className="text-2xl font-bold text-primary">
+                  R$ {totalPatrimony.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
-                <Link to="/configuracoes">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </Link>
+                <p className="text-sm text-muted-foreground">Patrimônio Total</p>
               </div>
+              <Link to="/configuracoes">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Configurações">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </div>
         </CompactHeader>
 
-        {/* FOCUS MODE - Versão simplificada */}
+        {/* ── Banner de onboarding (somente usuários sem nenhum dado) ──────── */}
+        {isNewUser && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Card className="border-primary/30 bg-primary/5">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-lg">Bem-vindo ao Lumify!</CardTitle>
+                    <CardDescription className="mt-1">
+                      Complete os primeiros passos para começar a acompanhar sua saúde financeira.
+                    </CardDescription>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-2xl font-bold text-primary">{completedSteps}/{onboardingSteps.length}</div>
+                    <p className="text-xs text-muted-foreground">concluídos</p>
+                  </div>
+                </div>
+                <Progress value={(completedSteps / onboardingSteps.length) * 100} className="h-1.5 mt-3" />
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {onboardingSteps.map((step) => (
+                  <div
+                    key={step.id}
+                    className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                      step.done
+                        ? 'bg-success/5 border-success/20 opacity-60'
+                        : 'bg-background border-border hover:border-primary/40'
+                    }`}
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      {step.done
+                        ? <CheckCircle2 className="h-5 w-5 text-success" />
+                        : <Circle className="h-5 w-5 text-muted-foreground" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${step.done ? 'line-through text-muted-foreground' : ''}`}>
+                        {step.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        {step.description}
+                      </p>
+                      {!step.done && (
+                        <Link to={step.href}>
+                          <Button variant="link" size="sm" className="h-auto p-0 mt-1 text-xs text-primary">
+                            {step.cta} <ArrowRight className="h-3 w-3 ml-1" />
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* ── Modo Foco / Completo ─────────────────────────────────────────── */}
         <AnimatePresence mode="wait">
           {focusMode ? (
+
+            // ── MODO FOCO ──────────────────────────────────────────────────
             <motion.div
               key="focus-mode"
               initial={{ opacity: 0, y: 20 }}
@@ -197,20 +313,17 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Termômetro de Saúde Financeira */}
               <FinancialHealthMeter />
-              
-              {/* Próxima Ação Sugerida */}
               <QuickActionCard />
-              
-              {/* Progresso da Meta Principal */}
+
+              {/* Meta do período no modo foco */}
               <Card className="border-2 border-primary/20">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="font-semibold text-lg">Meta do Mês</h3>
+                      <h3 className="font-semibold text-lg">Meta {periodLabel}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {periodGoal > 0 
+                        {periodGoal > 0
                           ? `R$ ${totalInvested.toLocaleString('pt-BR')} de R$ ${periodGoal.toLocaleString('pt-BR')}`
                           : 'Defina uma meta para acompanhar'}
                       </p>
@@ -224,7 +337,7 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
                   )}
                   {goalProgress >= 100 && (
                     <p className="text-sm text-success mt-2 font-medium text-center">
-                      🎉 Parabéns! Meta atingida!
+                      Parabéns! Meta atingida!
                     </p>
                   )}
                 </CardContent>
@@ -234,7 +347,10 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
                 Clique em "Completo" para ver mais detalhes
               </p>
             </motion.div>
+
           ) : (
+
+            // ── MODO COMPLETO ──────────────────────────────────────────────
             <motion.div
               key="full-mode"
               initial={{ opacity: 0, y: 20 }}
@@ -243,192 +359,145 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
               transition={{ duration: 0.3 }}
               className="space-y-4 md:space-y-5"
             >
-              {/* Termômetro de Saúde Financeira - Novo componente principal */}
+              {/* Score de saúde financeira */}
               <FinancialHealthMeter />
 
-        {/* KPIs principais - apenas os mais importantes */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
-          <Card className="border-l-4 border-l-destructive">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                Gastos no Período
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-card-foreground">R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                <span>✅ R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                <span>⏳ R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-            </CardContent>
-          </Card>
+              {/* ── 3 KPIs ──────────────────────────────────────────────── */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
 
-          <Card className={`border-l-4 ${incomeInsights.availableBalance >= 0 ? 'border-l-green-500' : 'border-l-red-500'}`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Sobra no mês
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Mês atual: receitas − gastos pagos − investimentos (não é saldo em conta)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-3xl font-bold ${incomeInsights.availableBalance >= 0 ? 'text-success' : 'text-error'}`}>
-                R$ {incomeInsights.availableBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </div>
-              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                <span>Pode gastar: R$ {incomeInsights.dailySpendingCapacity.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/dia</span>
-              </div>
-            </CardContent>
-          </Card>
+                {/* KPI 1: Gastos */}
+                <Card className="border-l-4 border-l-destructive">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Gastos no Período
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">
+                      R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                    <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground flex-wrap">
+                      <span>Pago: R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      {totalPending > 0 && (
+                        <span className="text-warning">
+                          Pendente: R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
 
-          <Card className="border-l-4 border-l-income">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                Aportes no Período
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-card-foreground">R$ {totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                <span>Taxa de poupança: {Math.round(savingsRate)}%</span>
-              </div>
-            </CardContent>
-          </Card>
+                {/* KPI 2: Sobra no mês atual */}
+                <Card className={`border-l-4 ${incomeInsights.availableBalance >= 0 ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Sobra no Mês Atual
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Receitas − gastos pagos − investimentos do mês corrente
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className={`text-3xl font-bold ${incomeInsights.availableBalance >= 0 ? 'text-success' : 'text-error'}`}>
+                      R$ {incomeInsights.availableBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      Pode gastar: R$ {incomeInsights.dailySpendingCapacity.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/dia
+                    </div>
+                  </CardContent>
+                </Card>
 
-          <Card className="border-l-4 border-l-primary">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                Progresso da Meta
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {periodGoal > 0 ? (
-                <>
-                  <div className="text-3xl font-bold text-card-foreground">{Math.round(goalProgress)}%</div>
-                  <Progress value={Math.min(goalProgress, 100)} className="h-3 mt-3" />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    R$ {totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de R$ {periodGoal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    {goalProgress > 100 && (
-                      <span className="block text-success font-medium">
-                        R$ {(totalInvested - periodGoal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} além da meta! 🎉
-                      </span>
+                {/* KPI 3: Aportes + progresso da meta (combinado) */}
+                <Card className="border-l-4 border-l-primary">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Aportes no Período
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">
+                      R$ {totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Taxa de poupança: {Math.round(savingsRate)}%
+                    </div>
+                    {periodGoal > 0 ? (
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                          <span>Meta {periodLabel}</span>
+                          <span className={goalProgress >= 100 ? 'text-success font-medium' : ''}>
+                            {Math.round(goalProgress)}%
+                          </span>
+                        </div>
+                        <Progress value={Math.min(goalProgress, 100)} className="h-2" />
+                        {goalProgress > 100 && (
+                          <p className="text-xs text-success font-medium mt-1">
+                            R$ {(totalInvested - periodGoal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} além da meta!
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <Link to="/configuracoes" className="block mt-2">
+                        <Button variant="link" size="sm" className="h-auto p-0 text-xs text-primary">
+                          <Target className="h-3 w-3 mr-1" />
+                          Definir meta mensal
+                        </Button>
+                      </Link>
                     )}
-                  </p>
-                </>
-              ) : (
-                <div className="text-center py-4">
-                  <Target className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Defina uma meta mensal</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-        {/* Seção de ações rápidas e evolução */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
-          {/* Próxima Ação Sugerida - Novo componente inteligente */}
-          <QuickActionCard />
+              {/* ── Próxima ação sugerida (largura total) ───────────────── */}
+              <QuickActionCard />
 
-          {/* Comparação com você do passado - Novo componente */}
-          <SelfComparisonCard monthsAgo={6} />
-        </div>
-
-        {/* Seção de insights e jornada */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
-          {/* Insights Financeiros Consolidados */}
-          {canAccessTips ? (
-            (incomeInsights.recommendations.length > 0 || educationTips.length > 0) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary"/>
-                    Insights Financeiros
-                  </CardTitle>
-                  <CardDescription>Recomendações e dicas personalizadas para sua situação</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {incomeInsights.recommendations.length > 0 && (
-                    <div className="space-y-3">
+              {/* ── Dicas (se Pro e com conteúdo) + Jornada ────────────── */}
+              {hasTipsContent ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <DollarSign className="h-5 w-5 text-primary" />
+                        Dicas do Período
+                      </CardTitle>
+                      <CardDescription>Recomendações personalizadas para sua situação</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
                       {incomeInsights.recommendations.slice(0, 3).map((rec, i) => (
-                        <div key={i} className={`p-4 rounded-lg text-sm flex items-start gap-3 ${
+                        <div key={i} className={`p-3 rounded-lg text-sm flex items-start gap-3 ${
                           rec.type === 'warning' ? 'bg-error-muted border border-error' :
                           rec.type === 'success' ? 'bg-success-muted border border-success' :
                           'bg-info-muted border border-info'
                         }`}>
-                          {rec.type === 'warning' && <AlertTriangle className="h-5 w-5 text-error mt-0.5 flex-shrink-0"/>}
-                          {rec.type === 'success' && <Trophy className="h-5 w-5 text-success mt-0.5 flex-shrink-0"/>}
-                          {rec.type === 'tip' && <Lightbulb className="h-5 w-5 text-info mt-0.5 flex-shrink-0"/>}
+                          {rec.type === 'warning' && <AlertTriangle className="h-4 w-4 text-error mt-0.5 flex-shrink-0" />}
+                          {rec.type === 'success' && <Trophy className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />}
+                          {rec.type === 'tip' && <Lightbulb className="h-4 w-4 text-info mt-0.5 flex-shrink-0" />}
                           <div>
-                            <p className="font-medium text-card-foreground">{rec.message}</p>
-                            {rec.action && (
-                              <p className="text-xs text-muted-foreground mt-1">{rec.action}</p>
-                            )}
+                            <p className="font-medium">{rec.message}</p>
+                            {rec.action && <p className="text-xs text-muted-foreground mt-0.5">{rec.action}</p>}
                           </div>
                         </div>
                       ))}
-                    </div>
-                  )}
-
-                  {educationTips.length > 0 && (
-                    <div className="space-y-3">
                       {educationTips.map((tip, i) => (
-                        <div key={i} className={`p-4 rounded-lg text-sm flex items-start gap-3 transition-colors duration-200 ${
-                          tip.type === 'warning' ? 'bg-warning/10 border border-warning/30 hover:bg-warning/20' :
-                          tip.type === 'success' ? 'bg-success/10 border border-success/30 hover:bg-success/20' :
-                          'bg-primary/10 border border-primary/30 hover:bg-primary/20'
+                        <div key={`tip-${i}`} className={`p-3 rounded-lg text-sm flex items-start gap-3 ${
+                          tip.type === 'warning' ? 'bg-warning/10 border border-warning/30' :
+                          tip.type === 'success' ? 'bg-success/10 border border-success/30' :
+                          'bg-primary/10 border border-primary/30'
                         }`}>
-                          {tip.type === 'warning' && <span className="text-lg">⚠️</span>}
-                          {tip.type === 'success' && <span className="text-lg">✨</span>}
-                          {tip.type === 'tip' && <span className="text-lg">💡</span>}
-                          <div className="flex-1">
-                            <span className="text-card-foreground">{tip.message}</span>
-                            {tip.type === 'tip' && (
-                              <p className="text-xs text-muted-foreground italic mt-1">
-                                Pequenos passos levam a grandes conquistas.
-                              </p>
-                            )}
-                          </div>
+                          {tip.type === 'warning' && <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />}
+                          {tip.type === 'success' && <Trophy className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />}
+                          {tip.type === 'tip' && <Lightbulb className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />}
+                          <span>{tip.message}</span>
                         </div>
                       ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          ) : (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5 text-primary"/>
-                  Insights Financeiros
-                </CardTitle>
-                <CardDescription>Dicas e recomendações personalizadas para você</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-4 space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                    <Lock className="h-6 w-6 text-primary" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Dicas financeiras automáticas são um recurso do plano Pro.
-                  </p>
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/planos" className="inline-flex items-center gap-2">
-                      <Star className="h-4 w-4" />
-                      Fazer upgrade
-                    </Link>
-                  </Button>
+                    </CardContent>
+                  </Card>
+                  <FinancialJourneyCard />
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Jornada Financeira - Novo componente de storytelling */}
-          <FinancialJourneyCard />
-        </div>
+              ) : (
+                <FinancialJourneyCard />
+              )}
 
             </motion.div>
           )}
@@ -439,5 +508,3 @@ const HomeSummaryPage = memo(function HomeSummaryPage() {
 });
 
 export { HomeSummaryPage };
-
-
