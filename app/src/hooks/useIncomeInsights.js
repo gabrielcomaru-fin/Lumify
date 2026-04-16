@@ -54,15 +54,16 @@ export const useIncomeInsights = () => {
     const daysPassed = differenceInDays(today, currentMonthStart) + 1;
     const averageDailySpending = daysPassed > 0 ? totalCurrentMonthExpenses / daysPassed : 0;
     
-    // Dias até zerar o saldo (se continuar gastando na média)
-    const daysUntilBalanceZero = averageDailySpending > 0 
-      ? Math.ceil(currentMonthAvailableBalance / averageDailySpending) 
-      : Infinity;
+    // Dias até zerar o saldo — null se saldo já negativo ou gasto médio zerado
+    const daysUntilBalanceZero = averageDailySpending > 0 && currentMonthAvailableBalance > 0
+      ? Math.ceil(currentMonthAvailableBalance / averageDailySpending)
+      : currentMonthAvailableBalance <= 0 ? null : Infinity;
     
     // Status de saúde financeira
     const isBalanceHealthy = currentMonthAvailableBalance > (totalCurrentMonthIncome * 0.2); // 20% das receitas
-    const needsMoreIncome = totalCurrentMonthIncome < totalCurrentMonthExpenses;
-    const isSpendingTooMuch = incomeVsExpensesRatio < 100; // Gastando mais que recebe
+    // needsMoreIncome: receita não cobre despesas + investimentos (fluxo do mês negativo)
+    const needsMoreIncome = currentMonthAvailableBalance < 0;
+    const isSpendingTooMuch = incomeVsExpensesRatio < 100; // Gastando mais que recebe (só despesas)
     
     // Recomendações baseadas nos dados
     const recommendations = [];
@@ -125,7 +126,7 @@ export const useIncomeInsights = () => {
       savingsRate,
       
       // Previsões
-      daysUntilBalanceZero: daysUntilBalanceZero === Infinity ? null : daysUntilBalanceZero,
+      daysUntilBalanceZero: daysUntilBalanceZero === Infinity ? null : daysUntilBalanceZero ?? null,
       averageDailySpending,
       
       // Status

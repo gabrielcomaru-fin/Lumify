@@ -22,6 +22,16 @@ import { startOfMonth, endOfMonth, parseISO, subMonths } from 'date-fns';
 import { Sparklines, SparklinesLine } from 'react-sparklines';
 import { Button } from '@/components/ui/button';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   getPeriodBounds,
   filterExpensesInPeriod,
   countDistinctCalendarMonthsInRange,
@@ -175,6 +185,7 @@ export function ExpensesPage() {
 
   // Seleção em lote na lista paginada
   const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const selectedCount = selectedIds.length;
   const handleSelectOne = (id, checked) => {
     setSelectedIds(prev => checked ? Array.from(new Set([...prev, id])) : prev.filter(x => x !== id));
@@ -198,6 +209,10 @@ export function ExpensesPage() {
 
   const handleBulkDelete = async () => {
     if (selectedCount === 0) return;
+    setBulkDeleteConfirmOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
     try {
       for (const id of selectedIds) {
         await deleteExpense(id);
@@ -267,12 +282,12 @@ export function ExpensesPage() {
   return (
     <>
       <Helmet>
-        <title>Controle de Despesas - Lumify</title>
+        <title>Despesas - Lumify</title>
         <meta name="description" content="Adicione e gerencie suas despesas." />
       </Helmet>
       <div className="space-y-3 md:space-y-4 page-top">
         <CompactHeader 
-          title="Controle de Despesas"
+          title="Despesas"
           subtitle="Gerencie suas despesas e acompanhe seus gastos"
           actionButton={
             <ExpenseForm
@@ -547,9 +562,9 @@ export function ExpensesPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ArrowUp className="h-5 w-5 text-primary" />
-                  Insights Financeiros
+                  Análise de Gastos
                 </CardTitle>
-                <CardDescription>Análises personalizadas dos seus gastos</CardDescription>
+                <CardDescription>Análises personalizadas dos seus gastos no período</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -679,6 +694,24 @@ export function ExpensesPage() {
           onUndoImport={handleUndoImportOFX}
           onClose={() => setIsImportOpen(false)}
         />
+
+        {/* Confirmação de exclusão em lote */}
+        <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir {selectedCount} lançamento(s)?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação é permanente e não pode ser desfeita. Todos os lançamentos selecionados serão removidos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </>
   );

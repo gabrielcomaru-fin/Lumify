@@ -13,21 +13,23 @@ export const useAdvancedMetrics = () => {
       .reduce((sum, inv) => sum + (inv.valor_aporte || 0), 0);
   };
 
-  // Calcular taxa de crescimento patrimonial
+  // Média mensal de aportes (valor em R$/mês, não taxa)
+  const calculateAverageMonthlyContribution = (investmentList) => {
+    if (!investmentList || investmentList.length === 0) return 0;
+    const byMonth = investmentList.reduce((acc, inv) => {
+      const d = new Date(inv.data);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      acc[key] = (acc[key] || 0) + (inv.valor_aporte || 0);
+      return acc;
+    }, {});
+    const keys = Object.keys(byMonth);
+    if (keys.length === 0) return 0;
+    return keys.reduce((s, k) => s + byMonth[k], 0) / keys.length;
+  };
+
+  // Média mensal de aportes — exposta como "taxa de crescimento" (valor R$/mês)
   const calculateWealthGrowthRate = (data) => {
-    if (data.investments.length < 2) return 0;
-    
-    const sortedInvestments = [...data.investments].sort((a, b) => new Date(a.data) - new Date(b.data));
-    const firstMonth = sortedInvestments[0];
-    const lastMonth = sortedInvestments[sortedInvestments.length - 1];
-    
-    const timeDiff = (new Date(lastMonth.data) - new Date(firstMonth.data)) / (1000 * 60 * 60 * 24 * 30); // meses
-    if (timeDiff <= 0) return 0;
-    
-    const totalInvested = data.investments.reduce((sum, inv) => sum + inv.valor_aporte, 0);
-    const averageMonthlyGrowth = totalInvested / timeDiff;
-    
-    return averageMonthlyGrowth;
+    return calculateAverageMonthlyContribution(data.investments);
   };
 
   // Calcular diversificação de investimentos
@@ -69,8 +71,8 @@ export const useAdvancedMetrics = () => {
 
   // Calcular eficiência orçamentária
   const calculateBudgetEfficiency = (data) => {
-    const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.valor, 0);
-    const totalInvestments = data.investments.reduce((sum, investment) => sum + investment.valor_aporte, 0);
+    const totalExpenses = data.expenses.reduce((sum, expense) => sum + (expense.valor || 0), 0);
+    const totalInvestments = data.investments.reduce((sum, investment) => sum + (investment.valor_aporte || 0), 0);
     
     if (totalExpenses === 0) return 100;
     
@@ -80,19 +82,26 @@ export const useAdvancedMetrics = () => {
   };
 
   // Calcular consistência nos investimentos
+  // Compara meses com aporte vs. total de meses no intervalo (do primeiro ao último registro)
   const calculateConsistency = (data) => {
     if (data.investments.length < 3) return 0;
     
     const monthlyInvestments = {};
     data.investments.forEach(inv => {
       const month = new Date(inv.data).toISOString().slice(0, 7);
-      monthlyInvestments[month] = (monthlyInvestments[month] || 0) + inv.valor_aporte;
+      monthlyInvestments[month] = (monthlyInvestments[month] || 0) + (inv.valor_aporte || 0);
     });
     
-    const months = Object.keys(monthlyInvestments).length;
-    const monthsWithInvestments = Object.values(monthlyInvestments).filter(amount => amount > 0).length;
+    const sortedMonths = Object.keys(monthlyInvestments).sort();
+    const monthsWithInvestments = sortedMonths.length;
     
-    return (monthsWithInvestments / months) * 100;
+    // Total de meses no intervalo do primeiro ao último aporte
+    const first = new Date(sortedMonths[0] + '-01');
+    const last = new Date(sortedMonths[sortedMonths.length - 1] + '-01');
+    const totalMonthsInRange = (last.getFullYear() - first.getFullYear()) * 12 + (last.getMonth() - first.getMonth()) + 1;
+    
+    if (totalMonthsInRange <= 0) return 0;
+    return (monthsWithInvestments / totalMonthsInRange) * 100;
   };
 
   // Calcular a média mensal de gastos baseada no histórico
@@ -112,8 +121,8 @@ export const useAdvancedMetrics = () => {
 
   // Calcular score geral de saúde financeira
   const calculateFinancialHealthScore = (data, emergencyFundFromInvestments, averageMonthlyExpenses) => {
-    const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.valor, 0);
-    const totalInvestments = data.investments.reduce((sum, investment) => sum + investment.valor_aporte, 0);
+    const totalExpenses = data.expenses.reduce((sum, expense) => sum + (expense.valor || 0), 0);
+    const totalInvestments = data.investments.reduce((sum, investment) => sum + (investment.valor_aporte || 0), 0);
     
     let score = 0;
     
@@ -143,8 +152,8 @@ export const useAdvancedMetrics = () => {
 
   // Calcular métricas de saúde financeira
   const calculateFinancialHealth = (data, accountBalance) => {
-    const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.valor, 0);
-    const totalInvestments = data.investments.reduce((sum, investment) => sum + investment.valor_aporte, 0);
+    const totalExpenses = data.expenses.reduce((sum, expense) => sum + (expense.valor || 0), 0);
+    const totalInvestments = data.investments.reduce((sum, investment) => sum + (investment.valor_aporte || 0), 0);
     
     // Calcular média mensal de gastos (corrigido: usa média, não total)
     const averageMonthlyExpenses = calculateAverageMonthlyExpenses(data.expenses);
@@ -181,7 +190,7 @@ export const useAdvancedMetrics = () => {
         ? (totalInvestments / (totalExpenses + totalInvestments)) * 100 
         : 0,
       
-      // Velocidade de crescimento patrimonial
+      // Média mensal de aportes (R$/mês)
       wealthGrowthRate: calculateWealthGrowthRate(data),
       
       // Diversificação de investimentos

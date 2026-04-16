@@ -359,11 +359,21 @@ export function InvestmentProjectionPage() {
         const initial = parseCurrency(data.initialAmount);
         const targetAmount = parseCurrency(data.targetAmount) || 0;
         const annualRate = parseFloat(data.annualRate) / 100;
-        const years = parseInt(data.years);
-        const months = years * 12;
-        if (!targetAmount || months <= 0) return null;
+        if (!targetAmount) return null;
+
+        // Usa a data-alvo se existir; caso contrário, cai para o horizonte em anos
+        let n;
+        if (data.targetDate) {
+            const now = new Date();
+            const tDate = new Date(data.targetDate);
+            n = Math.max(0, Math.round((tDate.getFullYear() - now.getFullYear()) * 12 + (tDate.getMonth() - now.getMonth())));
+        } else {
+            const years = parseInt(data.years);
+            n = isNaN(years) ? 0 : years * 12;
+        }
+
+        if (n <= 0) return null;
         const r = Math.pow(1 + annualRate, 1/12) - 1;
-        const n = months;
         const fv0 = initial * Math.pow(1 + r, n);
         const factor = r === 0 ? n : (Math.pow(1 + r, n) - 1) / r;
         return Math.max(0, (targetAmount - fv0) / factor);
@@ -636,11 +646,9 @@ export function InvestmentProjectionPage() {
                                         <CurrencyInput id="targetAmountSimple" value={calcData.targetAmount} onChange={(val) => handleCurrencyChange(val, 'targetAmount')} />
                                     </div>
                                 </div>
-                                <div className="mb-4">
-                                    <Button onClick={calculateSimple} className="w-full">
-                                        Atualizar Projeção
-                                    </Button>
-                                </div>
+                                <p className="text-xs text-muted-foreground mb-2">
+                                  Valores nominais (sem desconto de inflação). A projeção atualiza automaticamente ao alterar as opções acima.
+                                </p>
 
                                 {/* Resumo rápido didático */}
                                 {result && (
@@ -800,13 +808,22 @@ export function InvestmentProjectionPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <Button onClick={calculateProjection} className="w-full">
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Valores nominais — a inflação não desconta o valor projetado. Use como referência de crescimento bruto.
+                                </p>
+                                <Button onClick={calculateProjection} className="w-full mt-3">
                                     Calcular Projeção Comparativa
                                 </Button>
                             </CardContent>
                         </Card>
                     </TabsContent>
                 </Tabs>
+
+                {!result && (
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                        Configure os parâmetros acima e clique em <strong>Calcular Projeção Comparativa</strong> para ver os resultados.
+                    </div>
+                )}
 
                 {result && (
                     <motion.div
