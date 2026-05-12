@@ -13,20 +13,38 @@ function getBaseUrl(req) {
   return `${proto}://${host}`;
 }
 
+async function getUserIdFromRequest(req) {
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return null;
+
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) return null;
+  return data.user.id;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const { userId, priceId, plan } = req.body || {};
-    const effectivePriceId = priceId || (plan === 'premium' && process.env.STRIPE_PRICE_PREMIUM_MENSAL) || process.env.STRIPE_PRICE_PRO_MENSAL;
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Valid session required' });
+  }
 
-    if (!userId || !effectivePriceId) {
+  try {
+    const { priceId, plan } = req.body || {};
+    const effectivePriceId =
+      priceId ||
+      (plan === 'premium' && process.env.STRIPE_PRICE_PREMIUM_MENSAL) ||
+      process.env.STRIPE_PRICE_PRO_MENSAL;
+
+    if (!effectivePriceId) {
       return res.status(400).json({
         error: 'Missing required fields',
-        message: 'userId and priceId (or plan) are required',
+        message: 'priceId or a valid plan is required',
       });
     }
 
