@@ -1,4 +1,4 @@
-# Lumify - Sistema de Controle Financeiro Pessoal
+# Lumify — Sistema de Controle Financeiro Pessoal
 
 Um aplicativo moderno para gerenciamento de finanças pessoais, construído com React, Vite, Tailwind CSS e Supabase.
 
@@ -6,328 +6,186 @@ Um aplicativo moderno para gerenciamento de finanças pessoais, construído com 
 
 Este repositório é um **monorepo**:
 
-- **`app/`** — aplicação principal (React + Vite)
-- **`blog/`** — blog em Next.js (SSG, MDX). Documentação: [blog/README.md](blog/README.md)
+- **`app/`** — aplicação principal (React + Vite + Supabase + Stripe)
+- **`blog/`** — blog institucional em Next.js (SSG, MDX). Documentação: [blog/README.md](blog/README.md)
 
-## 🚀 Funcionalidades
+---
 
-- **Dashboard Inteligente**: KPIs relevantes e dicas personalizadas
-- **Gestão de Gastos**: Controle de despesas por categoria com limites
-- **Investimentos**: Acompanhamento de aportes e metas
-- **Relatórios Avançados**: Gráficos e análises detalhadas
-- **Exportação de Dados**: CSV e JSON
-- **Notificações Push**: Lembretes e alertas personalizados
-- **Responsivo**: Interface adaptável para mobile e desktop
-- **Cache Inteligente**: Performance otimizada com cache de queries
+## Funcionalidades
 
-## 🛠️ Tecnologias
+- **Dashboard Inteligente** — KPIs e dicas personalizadas
+- **Gestão de Gastos** — despesas por categoria com limites configuráveis
+- **Receitas** — controle de entradas financeiras
+- **Investimentos** — aportes, metas e projeções
+- **Relatórios Avançados** — gráficos e análises detalhadas com exportação (CSV/JSON/PDF)
+- **Gamificação** — conquistas e metas para engajamento
+- **Planos Pro/Premium** — integração com Stripe para assinaturas
+- **Notificações** — alertas de limites e lembretes (browser Notification API)
+- **Responsivo** — interface adaptável para mobile e desktop
 
-- **Frontend**: React 18, Vite, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
-- **UI Components**: Radix UI, Lucide React
-- **Charts**: Recharts
-- **Animações**: Framer Motion
-- **Data**: date-fns para manipulação de datas
+---
 
-## 📋 Pré-requisitos
+## Tecnologias
 
-- Node.js 18+ 
-- npm ou yarn
-- Conta no Supabase
+| Camada | Stack |
+|--------|-------|
+| Frontend | React 18, Vite, Tailwind CSS |
+| Backend/DB | Supabase (PostgreSQL, Auth, RLS, Real-time) |
+| Pagamentos | Stripe (Checkout, Webhooks) |
+| Deploy | Vercel (App + Funções serverless) |
+| UI | Radix UI, Lucide React, Framer Motion |
+| Gráficos | Recharts |
 
-## ⚙️ Configuração
+---
 
-### 1. Clone o repositório
+## Pré-requisitos
+
+- Node.js 20+
+- npm
+- Conta no [Supabase](https://supabase.com)
+- Conta no [Stripe](https://stripe.com) (para funcionalidades de planos)
+
+---
+
+## Configuração do App (`app/`)
+
+### 1. Acesse o diretório do app
+
 ```bash
-git clone <url-do-repositorio>
-cd Lumify
+cd app
 ```
 
 ### 2. Instale as dependências
+
 ```bash
 npm install
 ```
 
 ### 3. Configure as variáveis de ambiente
 
-**Opção 1: Configuração Automática (Recomendado)**
+Copie o arquivo de exemplo e preencha com suas credenciais:
+
 ```bash
-npm run setup:supabase
+cp .env.example .env
 ```
 
-**Opção 2: Configuração Manual**
-
-Crie um arquivo `.env` na raiz do projeto:
-
-```env
-VITE_SUPABASE_URL=sua_url_do_supabase
-VITE_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
-VITE_APP_NAME=NovaFin
-VITE_APP_VERSION=1.0.0
-VITE_APP_ENVIRONMENT=development
-
-# URLs de redirecionamento
-# IMPORTANTE: Atualize com seu domínio de produção antes do deploy
-# Produção: VITE_REDIRECT_URL_BASE=https://lumify.app.br
-# Desenvolvimento: VITE_REDIRECT_URL_BASE=http://localhost:5173
-VITE_REDIRECT_URL_BASE=http://localhost:5173
-
-# Base path do Vite (opcional, padrão: '/')
-# Use apenas se sua aplicação estiver em um subpath (ex: '/app/')
-VITE_BASE_PATH=/
-```
-
-**Como obter as credenciais do Supabase:**
-
-1. Acesse [supabase.com](https://supabase.com)
-2. Crie um novo projeto
-3. Vá em Settings > API
-4. Copie a URL e a chave anônima
+Edite `.env` com seus valores do Supabase e Stripe. Consulte `.env.example` para ver todas as variáveis disponíveis.
 
 **Verificar configuração:**
+
 ```bash
 npm run check:env
 ```
 
-**Deploy (Vercel ou outro host) – uma única vez:**  
-Mantenha todas as variáveis no `.env`. Na Vercel: **Project → Settings → Environment Variables** → use **"Import .env"** (ou cole o conteúdo do `.env` em lote). Assim você sobe tudo de uma vez e, ao trocar de hospedagem, basta importar o mesmo `.env` no novo painel.
-
 ### 4. Configure o banco de dados
 
-Execute os seguintes comandos SQL no editor SQL do Supabase:
+Execute as migrations do Supabase (na ordem) a partir do editor SQL do Supabase ou via CLI:
 
-```sql
--- Tabela de categorias
-CREATE TABLE categorias (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  nome VARCHAR(100) NOT NULL,
-  tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('gasto', 'investimento')),
-  limite DECIMAL(10,2),
-  cor VARCHAR(7),
-  usuario_id UUID REFERENCES auth.users(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Tabela de gastos
-CREATE TABLE gastos (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  descricao VARCHAR(255) NOT NULL,
-  valor DECIMAL(10,2) NOT NULL,
-  data DATE NOT NULL,
-  pago BOOLEAN DEFAULT FALSE,
-  categoria_id UUID REFERENCES categorias(id),
-  usuario_id UUID REFERENCES auth.users(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Tabela de investimentos
-CREATE TABLE investimentos (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  descricao VARCHAR(255),
-  valor_aporte DECIMAL(10,2) NOT NULL,
-  saldo_total DECIMAL(10,2),
-  data DATE NOT NULL,
-  categoria_id UUID REFERENCES categorias(id),
-  instituicao_id UUID REFERENCES contas_bancarias(id),
-  usuario_id UUID REFERENCES auth.users(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Tabela de contas bancárias
-CREATE TABLE contas_bancarias (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  nome VARCHAR(100) NOT NULL,
-  tipo VARCHAR(50),
-  saldo DECIMAL(10,2) DEFAULT 0,
-  descricao TEXT,
-  usuario_id UUID REFERENCES auth.users(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Tabela de metas de investimento
-CREATE TABLE metas_investimento (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  meta_mensal DECIMAL(10,2) NOT NULL,
-  usuario_id UUID REFERENCES auth.users(id) UNIQUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Políticas de segurança (RLS)
-ALTER TABLE categorias ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gastos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE investimentos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE contas_bancarias ENABLE ROW LEVEL SECURITY;
-ALTER TABLE metas_investimento ENABLE ROW LEVEL SECURITY;
-
--- Políticas para categorias
-CREATE POLICY "Users can view their own categories" ON categorias
-  FOR SELECT USING (usuario_id = auth.uid() OR usuario_id IS NULL);
-
-CREATE POLICY "Users can insert their own categories" ON categorias
-  FOR INSERT WITH CHECK (usuario_id = auth.uid());
-
-CREATE POLICY "Users can update their own categories" ON categorias
-  FOR UPDATE USING (usuario_id = auth.uid());
-
-CREATE POLICY "Users can delete their own categories" ON categorias
-  FOR DELETE USING (usuario_id = auth.uid());
-
--- Políticas para gastos
-CREATE POLICY "Users can view their own expenses" ON gastos
-  FOR SELECT USING (usuario_id = auth.uid());
-
-CREATE POLICY "Users can insert their own expenses" ON gastos
-  FOR INSERT WITH CHECK (usuario_id = auth.uid());
-
-CREATE POLICY "Users can update their own expenses" ON gastos
-  FOR UPDATE USING (usuario_id = auth.uid());
-
-CREATE POLICY "Users can delete their own expenses" ON gastos
-  FOR DELETE USING (usuario_id = auth.uid());
-
--- Políticas para investimentos
-CREATE POLICY "Users can view their own investments" ON investimentos
-  FOR SELECT USING (usuario_id = auth.uid());
-
-CREATE POLICY "Users can insert their own investments" ON investimentos
-  FOR INSERT WITH CHECK (usuario_id = auth.uid());
-
-CREATE POLICY "Users can update their own investments" ON investimentos
-  FOR UPDATE USING (usuario_id = auth.uid());
-
-CREATE POLICY "Users can delete their own investments" ON investimentos
-  FOR DELETE USING (usuario_id = auth.uid());
-
--- Políticas para contas bancárias
-CREATE POLICY "Users can view their own accounts" ON contas_bancarias
-  FOR SELECT USING (usuario_id = auth.uid());
-
-CREATE POLICY "Users can insert their own accounts" ON contas_bancarias
-  FOR INSERT WITH CHECK (usuario_id = auth.uid());
-
-CREATE POLICY "Users can update their own accounts" ON contas_bancarias
-  FOR UPDATE USING (usuario_id = auth.uid());
-
-CREATE POLICY "Users can delete their own accounts" ON contas_bancarias
-  FOR DELETE USING (usuario_id = auth.uid());
-
--- Políticas para metas de investimento
-CREATE POLICY "Users can view their own investment goals" ON metas_investimento
-  FOR SELECT USING (usuario_id = auth.uid());
-
-CREATE POLICY "Users can insert their own investment goals" ON metas_investimento
-  FOR INSERT WITH CHECK (usuario_id = auth.uid());
-
-CREATE POLICY "Users can update their own investment goals" ON metas_investimento
-  FOR UPDATE USING (usuario_id = auth.uid());
-
-CREATE POLICY "Users can delete their own investment goals" ON metas_investimento
-  FOR DELETE USING (usuario_id = auth.uid());
+```bash
+# Se usar a CLI do Supabase:
+supabase db push
 ```
 
-### 5. Execute o projeto
+Ou aplique manualmente os arquivos em `supabase/migrations/` no editor SQL do painel Supabase.
+
+> As migrations criam as tabelas, políticas RLS, índices e funções necessárias.
+
+### 5. Execute em desenvolvimento
 
 ```bash
 npm run dev
 ```
 
-O aplicativo estará disponível em `http://localhost:5173`
+O app estará disponível em `http://localhost:5173`.
 
-## 📱 Funcionalidades Principais
+---
 
-### Dashboard
-- Visão geral das finanças
-- KPIs principais (gastos, investimentos, taxa de poupança)
-- Progresso das metas
-- Dicas financeiras personalizadas
-
-### Gestão de Gastos
-- Cadastro de despesas por categoria
-- Controle de status (pago/pendente)
-- Limites por categoria
-- Filtros por período
-
-### Investimentos
-- Registro de aportes
-- Acompanhamento de metas
-- Projeções de crescimento
-- Histórico de investimentos
-
-### Relatórios
-- Gráficos de tendências
-- Análise por categoria
-- Comparações mensais
-- Exportação de dados
-
-### Notificações
-- Alertas de limites de gastos
-- Lembretes de metas
-- Dicas financeiras
-- Contas pendentes
-
-## 🔧 Scripts Disponíveis
+## Configuração do Blog (`blog/`)
 
 ```bash
-npm run dev          # Inicia o servidor de desenvolvimento
-npm run build        # Gera build de produção
-npm run preview      # Preview do build de produção
-npm run deploy       # Deploy para GitHub Pages
+cd blog
+npm install
+cp .env.example .env.local   # ajuste as URLs se necessário
+npm run dev
 ```
 
-## 📁 Estrutura do Projeto
+O blog estará disponível em `http://localhost:3000`. Consulte [blog/README.md](blog/README.md) para mais detalhes.
 
-```
-src/
-├── components/          # Componentes reutilizáveis
-│   ├── ui/             # Componentes de UI base
-│   ├── charts/         # Componentes de gráficos
-│   └── ...
-├── contexts/           # Contextos React
-├── hooks/              # Hooks customizados
-├── lib/                # Utilitários e configurações
-├── pages/              # Páginas da aplicação
-└── main.jsx           # Ponto de entrada
-```
+---
 
-## 🚀 Deploy
+## Scripts — App
 
-### GitHub Pages
 ```bash
-npm run deploy
+npm run dev          # Servidor de desenvolvimento
+npm run build        # Build de produção
+npm run preview      # Preview do build
+npm run check:env    # Verifica variáveis de ambiente
+npm run health:supabase  # Healthcheck do Supabase
 ```
 
-### Vercel/Netlify
-1. Conecte seu repositório
-2. Configure as variáveis de ambiente
-3. Deploy automático
+---
 
-## 🤝 Contribuição
+## Deploy (Vercel)
+
+O deploy é gerenciado pela Vercel como **dois projetos independentes** no mesmo repositório:
+
+| Projeto | Root Directory | Domínio |
+|---------|---------------|---------|
+| App Lumify | `app` | `lumify.app.br` |
+| Blog | `blog` | `blog.lumify.app.br` |
+
+**Configuração do projeto App na Vercel:**
+
+1. **Root Directory:** `app`
+2. **Framework Preset:** Vite (detectado automaticamente)
+3. **Environment Variables:** importe o `.env` via "Import .env" em *Project → Settings → Environment Variables*
+4. As funções serverless em `app/api/` serão detectadas automaticamente
+
+> **Atenção:** O script `npm run deploy` (gh-pages) é para publicações em GitHub Pages **sem** as funções do Stripe. Para produção completa use a Vercel.
+
+---
+
+## Estrutura do Projeto
+
+```
+├── app/                     # Aplicação React + Vite
+│   ├── api/                 # Funções serverless (Vercel)
+│   │   └── stripe/          # Checkout session e webhook
+│   ├── src/
+│   │   ├── components/      # Componentes reutilizáveis
+│   │   ├── contexts/        # Context API (Auth, Finance, Subscription…)
+│   │   ├── hooks/           # Hooks customizados
+│   │   ├── lib/             # Utilitários e cliente Supabase
+│   │   ├── pages/           # Páginas da aplicação
+│   │   └── config/          # Configuração de ambiente
+│   ├── supabase/
+│   │   └── migrations/      # Migrations SQL versionadas
+│   ├── .env.example         # Referência de variáveis de ambiente
+│   └── vercel.json          # Configuração de deploy e headers HTTP
+│
+├── blog/                    # Blog Next.js (SSG)
+│   ├── app/                 # App Router Next.js
+│   ├── content/posts/       # Artigos em MDX
+│   ├── components/          # Componentes do blog
+│   └── .env.example         # Referência de variáveis de ambiente
+│
+└── .github/
+    └── workflows/
+        └── ci.yml           # CI: lint + build (App e Blog)
+```
+
+---
+
+## Contribuição
 
 1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
+2. Crie uma branch para sua feature (`git checkout -b feature/minha-feature`)
+3. Commit suas mudanças (`git commit -m 'feat: descrição da mudança'`)
+4. Push para a branch (`git push origin feature/minha-feature`)
 5. Abra um Pull Request
 
-## 📄 Licença
+---
+
+## Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
-
-## 🆘 Suporte
-
-Se você encontrar algum problema ou tiver dúvidas:
-
-1. Verifique se as variáveis de ambiente estão configuradas corretamente
-2. Confirme se o banco de dados foi configurado com as tabelas e políticas
-3. Abra uma issue no GitHub
-
-## 🔄 Atualizações Recentes
-
-- ✅ Sistema de cache para otimização de performance
-- ✅ Tratamento de erros robusto
-- ✅ Loading states consistentes
-- ✅ Responsividade mobile melhorada
-- ✅ Novos gráficos e relatórios
-- ✅ Sistema de exportação de dados
-- ✅ Notificações push
-- ✅ Variáveis de ambiente configuráveis
