@@ -8,6 +8,8 @@ node_modules/
 /build
 /out
 /dist-ssr
+app/dist
+blog/.next
 *.local
 
 # Arquivos de cache
@@ -22,6 +24,8 @@ node_modules/
 .env.production.local
 .env.development
 .env.production
+.env.bak
+*.bak
 
 # Chaves e credenciais
 *.pem
