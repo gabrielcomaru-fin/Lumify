@@ -166,7 +166,26 @@ export default defineConfig({
 	},
 	build: {
 		rollupOptions: {
-			external: ['@babel/parser', '@babel/traverse', '@babel/generator', '@babel/types']
-		}
+			external: ['@babel/parser', '@babel/traverse', '@babel/generator', '@babel/types'],
+			output: {
+				manualChunks: {
+					'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+					'vendor-supabase': ['@supabase/supabase-js'],
+					'vendor-charts': ['recharts'],
+					'vendor-ui': [
+						'framer-motion',
+						'@radix-ui/react-dialog',
+						'@radix-ui/react-dropdown-menu',
+						'@radix-ui/react-select',
+						'@radix-ui/react-tabs',
+						'@radix-ui/react-toast',
+						'@radix-ui/react-alert-dialog',
+					],
+					'vendor-utils': ['date-fns', 'clsx', 'tailwind-merge'],
+				},
+			},
+		},
+		sourcemap: false,
+		chunkSizeWarningLimit: 1000,
 	}
 });

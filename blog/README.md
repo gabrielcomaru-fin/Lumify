@@ -1,6 +1,6 @@
 # Lumify Blog
 
-Site institucional de conteúdo (educação financeira) em **Next.js 15** (App Router), **TypeScript** e **Tailwind CSS**. Posts em **MDX** versionados em `content/posts/`.
+Site institucional de conteúdo (educação financeira) em **Next.js 16** (App Router), **TypeScript** e **Tailwind CSS**. Posts em **MDX** versionados em `content/posts/`.
 
 ## Requisitos
 

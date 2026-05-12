@@ -5,7 +5,7 @@ export const config = {
     anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
   },
   app: {
-    name: import.meta.env.VITE_APP_NAME || 'NovaFin',
+    name: import.meta.env.VITE_APP_NAME || 'Lumify',
     version: import.meta.env.VITE_APP_VERSION || '1.0.0',
     environment: import.meta.env.MODE,
     // IMPORTANTE: Em produção, configure VITE_REDIRECT_URL_BASE=https://lumify.app.br no .env
