@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Check, Star } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { supabase } from '@/lib/customSupabaseClient';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 
 const PLANS_CONFIG = [
@@ -95,11 +96,24 @@ export function PlansPage() {
     }
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({
+          variant: 'destructive',
+          title: 'Sessão expirada',
+          description: 'Faça login novamente para continuar.',
+        });
+        return;
+      }
+
       const baseUrl = window.location.origin;
       const res = await fetch(`${baseUrl}/api/stripe/create-checkout-session`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, plan: planId }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ plan: planId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
