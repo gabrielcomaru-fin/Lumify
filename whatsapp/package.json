@@ -8,6 +8,7 @@
     "dependencies": {
         "@google/generative-ai": "^0.24.0",
         "@supabase/supabase-js": "^2.49.4",
+        "cors": "^2.8.6",
         "express": "^4.21.2",
         "openai": "^4.100.0",
         "puppeteer": "^24.0.0",
