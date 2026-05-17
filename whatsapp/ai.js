@@ -12,7 +12,7 @@ const MODEL = process.env.AI_MODEL;
 
 const DEFAULTS = {
     openai: 'gpt-4o-mini',
-    gemini: 'gemini-1.5-flash',
+    gemini: 'gemini-2.5-flash',
     anthropic: 'claude-3-haiku-20240307',
 };
 
@@ -59,19 +59,38 @@ async function parseWithOpenAI(mensagem, categorias) {
     return JSON.parse(text);
 }
 
+const GEMINI_FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+
+function isGeminiModelNotFound(err) {
+    const msg = String(err?.message || err);
+    return msg.includes('404') || msg.includes('not found') || msg.includes('is not supported');
+}
+
 async function parseWithGemini(mensagem, categorias) {
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(API_KEY);
-    const model = MODEL || DEFAULTS.gemini;
-    const generativeModel = genAI.getGenerativeModel({
-        model,
-        generationConfig: { responseMimeType: 'application/json', temperature: 0 },
-    });
+    const candidates = [...new Set([MODEL || DEFAULTS.gemini, ...GEMINI_FALLBACK_MODELS])];
 
     const prompt = buildSystemPrompt(categorias) + '\n\nMensagem do usuário: ' + mensagem;
-    const result = await generativeModel.generateContent(prompt);
-    const text = result.response.text();
-    return JSON.parse(text);
+    let lastError;
+
+    for (const modelName of candidates) {
+        try {
+            const generativeModel = genAI.getGenerativeModel({
+                model: modelName,
+                generationConfig: { responseMimeType: 'application/json', temperature: 0 },
+            });
+            const result = await generativeModel.generateContent(prompt);
+            const text = result.response.text();
+            return JSON.parse(text);
+        } catch (err) {
+            lastError = err;
+            if (!isGeminiModelNotFound(err)) throw err;
+            console.warn(`[AI] Modelo ${modelName} indisponível, tentando próximo...`);
+        }
+    }
+
+    throw lastError;
 }
 
 async function parseWithAnthropic(mensagem, categorias) {

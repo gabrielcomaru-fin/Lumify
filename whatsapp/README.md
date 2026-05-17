@@ -58,5 +58,5 @@ docker run -p 3000:3000 --env-file .env -v lumify-wa-auth:/app/.wwebjs_auth lumi
 | Provedor | Padrão |
 |----------|--------|
 | `openai` | `gpt-4o-mini` |
-| `gemini` | `gemini-1.5-flash` |
+| `gemini` | `gemini-2.5-flash` |
 | `anthropic` | `claude-3-haiku-20240307` |
