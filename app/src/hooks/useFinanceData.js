@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { useValidation } from '@/hooks/useValidation';
+import { toast } from '@/components/ui/use-toast';
 import { startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
 // import { useSupabaseCache } from '@/lib/cache';
 
@@ -147,6 +148,97 @@ export const useFinanceData = () => {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    // Realtime: sincroniza gastos/receitas (WhatsApp, outro dispositivo, etc.)
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const mergeRow = (prev, row, eventType) => {
+            if (!row?.id) return prev;
+            if (eventType === 'DELETE') {
+                return prev.filter((item) => item.id !== row.id);
+            }
+            const index = prev.findIndex((item) => item.id === row.id);
+            if (eventType === 'INSERT') {
+                if (index >= 0) return prev;
+                return [row, ...prev];
+            }
+            if (index >= 0) {
+                const next = [...prev];
+                next[index] = row;
+                return next;
+            }
+            return [row, ...prev];
+        };
+
+        const channel = supabase
+            .channel(`finance-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'gastos',
+                    filter: `usuario_id=eq.${user.id}`,
+                },
+                (payload) => {
+                    const eventType = payload.eventType;
+                    const row = payload.new || payload.old;
+                    setExpenses((prev) => {
+                        const next = mergeRow(prev, row, eventType);
+                        if (
+                            eventType === 'INSERT' &&
+                            payload.new &&
+                            !prev.some((e) => e.id === payload.new.id)
+                        ) {
+                            toast({
+                                title: 'Nova despesa',
+                                description: payload.new.descricao || 'Lançamento sincronizado.',
+                            });
+                        }
+                        return next;
+                    });
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'receitas',
+                    filter: `usuario_id=eq.${user.id}`,
+                },
+                (payload) => {
+                    const eventType = payload.eventType;
+                    const row = payload.new || payload.old;
+                    setIncomes((prev) => {
+                        const next = mergeRow(prev, row, eventType);
+                        if (
+                            eventType === 'INSERT' &&
+                            payload.new &&
+                            !prev.some((i) => i.id === payload.new.id)
+                        ) {
+                            toast({
+                                title: 'Nova receita',
+                                description: payload.new.descricao || 'Lançamento sincronizado.',
+                            });
+                        }
+                        return next;
+                    });
+                }
+            )
+            .subscribe();
+
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') fetchData();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+
+        return () => {
+            document.removeEventListener('visibilitychange', onVisible);
+            supabase.removeChannel(channel);
+        };
+    }, [user?.id, fetchData]);
 
     // Função auxiliar para limpar meses antigos do localStorage (manter apenas últimos 12 meses)
     const cleanupOldExcludedMonths = useCallback(() => {

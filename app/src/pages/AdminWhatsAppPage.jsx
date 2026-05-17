@@ -65,6 +65,7 @@ function statusBadge(status) {
 
 function StatusPanel() {
     const [connected, setConnected] = useState(null);
+    const [waState, setWaState] = useState(null);
     const [lastIncoming, setLastIncoming] = useState(null);
     const [loading, setLoading] = useState(true);
     const [lastCheck, setLastCheck] = useState(null);
@@ -76,6 +77,7 @@ function StatusPanel() {
         try {
             const data = await fetchBot('/status');
             setConnected(data.connected);
+            setWaState(data.waState ?? null);
             setLastIncoming(data.lastIncoming || null);
         } catch (err) {
             setConnected(null);
@@ -136,6 +138,9 @@ function StatusPanel() {
                 {lastCheck && !fetchError && (
                     <p className="text-xs text-muted-foreground">
                         Última verificação: {formatDate(lastCheck)} · atualiza a cada 30s
+                        {waState && (
+                            <span className="block mt-1 font-mono">Estado WA: {waState}</span>
+                        )}
                     </p>
                 )}
                 {connected && lastIncoming && (

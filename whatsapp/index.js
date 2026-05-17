@@ -28,10 +28,12 @@ app.options('*', cors(corsOptions)); // preflight explícito para todos os endpo
 // ─── Estado do bot ───────────────────────────────────────────────────────────
 
 let botConnected = false;
+let waState = null; // estado real do cliente (getState / change_state)
 let currentQrData = null; // string raw do QR (para gerar imagem base64)
 let lastIncoming = null; // última mensagem recebida (debug via /status)
 const processedMessageIds = new Set();
 const MAX_PROCESSED_IDS = 500;
+const STATE_POLL_MS = 15000;
 
 // ─── Middleware de autenticação admin ────────────────────────────────────────
 
@@ -49,12 +51,28 @@ app.get('/', (req, res) => {
     res.send('Bot online');
 });
 
-app.get('/status', requireAdminToken, (req, res) => {
-    res.json({ connected: botConnected, lastIncoming });
+/** Atualiza botConnected a partir do estado real do WhatsApp Web (não só eventos em memória). */
+async function refreshConnectionState() {
+    try {
+        const state = await client.getState();
+        waState = state;
+        botConnected = state === 'CONNECTED';
+        return { connected: botConnected, waState: state };
+    } catch (err) {
+        waState = null;
+        botConnected = false;
+        return { connected: false, waState: null, stateError: err.message };
+    }
+}
+
+app.get('/status', requireAdminToken, async (req, res) => {
+    const stateInfo = await refreshConnectionState();
+    res.json({ ...stateInfo, lastIncoming });
 });
 
 app.get('/qr', requireAdminToken, async (req, res) => {
-    if (botConnected) {
+    const { connected } = await refreshConnectionState();
+    if (connected) {
         return res.json({ connected: true, qr: null });
     }
     if (!currentQrData) {
@@ -91,6 +109,7 @@ client.on('qr', (qr) => {
     console.log('==============================');
     currentQrData = qr;
     botConnected = false;
+    waState = 'UNPAIRED';
     qrcode.generate(qr, { small: true });
 });
 
@@ -99,7 +118,15 @@ client.on('ready', () => {
     console.log('WhatsApp conectado!');
     console.log('==============================');
     botConnected = true;
+    waState = 'CONNECTED';
     currentQrData = null;
+});
+
+client.on('change_state', (state) => {
+    console.log('[change_state]', state);
+    waState = state;
+    botConnected = state === 'CONNECTED';
+    if (!botConnected) currentQrData = null;
 });
 
 client.on('authenticated', () => {
@@ -109,12 +136,20 @@ client.on('authenticated', () => {
 client.on('auth_failure', (msg) => {
     console.error('Falha na autenticação:', msg);
     botConnected = false;
+    waState = null;
 });
 
 client.on('disconnected', (reason) => {
     console.log('Cliente desconectado:', reason);
     botConnected = false;
+    waState = 'DISCONNECTED';
     currentQrData = null;
+    // Permite novo QR após desvincular no celular (Aparelhos conectados)
+    setTimeout(() => {
+        client.initialize().catch((err) => {
+            console.error('[disconnected] Falha ao reinicializar:', err.message);
+        });
+    }, 3000);
 });
 
 // ─── Mensagens de resposta ───────────────────────────────────────────────────
@@ -291,6 +326,11 @@ client.on('message', handleIncomingMessage);
 client.on('message_create', handleIncomingMessage);
 
 client.initialize();
+
+// O flag "ready" pode ficar true mesmo após desconectar no celular; poll corrige o /status
+setInterval(() => {
+    refreshConnectionState().catch(() => {});
+}, STATE_POLL_MS);
 
 const PORT = process.env.PORT || 3000;
 
