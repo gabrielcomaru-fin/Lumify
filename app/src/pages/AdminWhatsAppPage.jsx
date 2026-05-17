@@ -65,6 +65,7 @@ function statusBadge(status) {
 
 function StatusPanel() {
     const [connected, setConnected] = useState(null);
+    const [lastIncoming, setLastIncoming] = useState(null);
     const [loading, setLoading] = useState(true);
     const [lastCheck, setLastCheck] = useState(null);
     const [fetchError, setFetchError] = useState(null);
@@ -75,6 +76,7 @@ function StatusPanel() {
         try {
             const data = await fetchBot('/status');
             setConnected(data.connected);
+            setLastIncoming(data.lastIncoming || null);
         } catch (err) {
             setConnected(null);
             setFetchError(err.message);
@@ -134,6 +136,24 @@ function StatusPanel() {
                 {lastCheck && !fetchError && (
                     <p className="text-xs text-muted-foreground">
                         Última verificação: {formatDate(lastCheck)} · atualiza a cada 30s
+                    </p>
+                )}
+                {connected && lastIncoming && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-xs rounded-lg border bg-muted/40 p-3 space-y-1 font-mono"
+                    >
+                        <p className="font-sans font-medium text-foreground">Última mensagem recebida pelo bot</p>
+                        <p className="text-muted-foreground">{formatDate(lastIncoming.at)}</p>
+                        <p>from: {lastIncoming.from}</p>
+                        <p>phone: {lastIncoming.phone || '—'}</p>
+                        <p>body: {lastIncoming.body || '—'}</p>
+                    </motion.div>
+                )}
+                {connected && !lastIncoming && !loading && (
+                    <p className="text-xs text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                        Nenhuma mensagem recebida ainda nesta sessão. Se você já enviou !ajuda, o bot pode não estar ouvindo — faça redeploy e teste de novo.
                     </p>
                 )}
             </CardContent>

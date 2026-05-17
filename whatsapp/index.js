@@ -29,6 +29,9 @@ app.options('*', cors(corsOptions)); // preflight explícito para todos os endpo
 
 let botConnected = false;
 let currentQrData = null; // string raw do QR (para gerar imagem base64)
+let lastIncoming = null; // última mensagem recebida (debug via /status)
+const processedMessageIds = new Set();
+const MAX_PROCESSED_IDS = 500;
 
 // ─── Middleware de autenticação admin ────────────────────────────────────────
 
@@ -47,7 +50,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/status', requireAdminToken, (req, res) => {
-    res.json({ connected: botConnected });
+    res.json({ connected: botConnected, lastIncoming });
 });
 
 app.get('/qr', requireAdminToken, async (req, res) => {
@@ -166,25 +169,74 @@ function montarConfirmacao(tipo, { valor, descricao, categoria_id, data }, categ
     );
 }
 
+// ─── Resolver telefone do remetente (@c.us ou @lid) ─────────────────────────
+
+async function resolveSenderPhone(message) {
+    const from = message.from || '';
+    if (from.endsWith('@c.us')) {
+        return from.replace(/@c\.us$/, '').replace(/\D/g, '');
+    }
+    if (from.endsWith('@lid') && typeof client.getContactLidAndPhone === 'function') {
+        try {
+            const info = await client.getContactLidAndPhone(from);
+            const entry = Array.isArray(info) ? info[0] : info;
+            const pn = entry?.pn || entry?.phone;
+            if (pn) return String(pn).replace(/@c\.us$/, '').replace(/\D/g, '');
+        } catch (err) {
+            console.error('[resolveSenderPhone] LID:', err.message);
+        }
+    }
+    return from.replace(/@c\.us$/, '').replace(/@lid$/, '').replace(/\D/g, '');
+}
+
+function isAjudaCommand(texto) {
+    const t = texto.toLowerCase();
+    return t === '!ajuda' || t === '!help' || t.startsWith('!ajuda');
+}
+
 // ─── Handler de mensagens ────────────────────────────────────────────────────
 
-client.on('message', async (message) => {
+function messageIdKey(message) {
+    return message.id?._serialized || message.id || `${message.from}:${message.timestamp}:${message.body}`;
+}
+
+async function handleIncomingMessage(message) {
+    if (message.fromMe) return;
     if (message.isGroupMsg) return;
 
-    const texto = message.body.trim();
-    const phone = message.from.replace(/@c\.us$/, '').replace(/\D/g, '');
-
-    if (texto.toLowerCase() === '!ajuda' || texto.toLowerCase() === '!help') {
-        await message.reply(MSG_AJUDA);
-        return;
+    const idKey = messageIdKey(message);
+    if (processedMessageIds.has(idKey)) return;
+    processedMessageIds.add(idKey);
+    if (processedMessageIds.size > MAX_PROCESSED_IDS) {
+        processedMessageIds.delete(processedMessageIds.values().next().value);
     }
 
-    if (texto.startsWith('!')) return;
-    if (texto.length < 5) return;
+    const texto = (message.body || '').trim();
+    const phone = await resolveSenderPhone(message);
+
+    lastIncoming = {
+        at: new Date().toISOString(),
+        from: message.from,
+        phone,
+        body: texto.slice(0, 120),
+    };
+    console.log('[incoming]', lastIncoming);
 
     try {
+        if (isAjudaCommand(texto)) {
+            await message.reply(MSG_AJUDA);
+            await insertLog(phone || 'unknown', texto, 'success', { comando: 'ajuda' });
+            return;
+        }
+
+        if (texto.startsWith('!')) {
+            await message.reply('Comando não reconhecido. Use *!ajuda* para ver os comandos disponíveis.');
+            return;
+        }
+        if (texto.length < 5) return;
+
         // 1. Verificar vínculo
-        const usuario = await getUserByPhone(message.from);
+        const usuario = await getUserByPhone(phone);
         if (!usuario) {
             await message.reply(MSG_NAO_VINCULADO);
             await insertLog(phone, texto, 'not_linked');
@@ -223,13 +275,20 @@ client.on('message', async (message) => {
         const confirmacao = montarConfirmacao(dados.tipo, dados, categorias);
         await message.reply(confirmacao);
         await insertLog(phone, texto, 'success', dados);
-
     } catch (error) {
         console.error('[message] Erro inesperado:', error);
-        await message.reply('❌ Ocorreu um erro inesperado. Tente novamente.');
-        await insertLog(phone, texto, 'error', null, error.message);
+        try {
+            await message.reply('❌ Ocorreu um erro inesperado. Tente novamente.');
+        } catch (replyErr) {
+            console.error('[message] Falha ao responder:', replyErr.message);
+        }
+        await insertLog(phone || 'unknown', texto, 'error', null, error.message);
     }
-});
+}
+
+// v1.34.x: o evento "message" às vezes não dispara; "message_create" é mais confiável
+client.on('message', handleIncomingMessage);
+client.on('message_create', handleIncomingMessage);
 
 client.initialize();
 

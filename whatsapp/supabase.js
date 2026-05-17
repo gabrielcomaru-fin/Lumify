@@ -21,8 +21,13 @@ function normalizePhone(waId) {
  * Busca o usuário pelo número de WhatsApp.
  * @returns {{ id, nome } | null}
  */
-async function getUserByPhone(waId) {
-    const phone = normalizePhone(waId);
+/**
+ * @param {string} waIdOrDigits - ID WhatsApp ("5511...@c.us") ou dígitos já normalizados
+ */
+async function getUserByPhone(waIdOrDigits) {
+    const phone = waIdOrDigits.includes('@')
+        ? normalizePhone(waIdOrDigits)
+        : waIdOrDigits.replace(/\D/g, '');
     const { data, error } = await supabase
         .from('usuarios')
         .select('id, nome')
