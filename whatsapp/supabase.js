@@ -18,24 +18,44 @@ function normalizePhone(waId) {
 }
 
 /**
- * Busca o usuário pelo número de WhatsApp.
- * @returns {{ id, nome } | null}
+ * Variantes com/sem o 9 do celular BR (55 + DDD + número).
+ * WhatsApp pode enviar 12 ou 13 dígitos para o mesmo aparelho.
  */
+function getBrazilPhoneVariants(phone) {
+    const digits = phone.replace(/\D/g, '');
+    const variants = new Set([digits]);
+    if (!digits.startsWith('55')) return [...variants];
+
+    // 13 dígitos com 9 após o DDD → tenta sem o 9
+    if (digits.length === 13 && digits[4] === '9') {
+        variants.add(digits.slice(0, 4) + digits.slice(5));
+    }
+    // 12 dígitos → tenta com 9 após o DDD
+    if (digits.length === 12) {
+        variants.add(`${digits.slice(0, 4)}9${digits.slice(4)}`);
+    }
+    return [...variants];
+}
+
 /**
+ * Busca o usuário pelo número de WhatsApp (com variantes BR).
  * @param {string} waIdOrDigits - ID WhatsApp ("5511...@c.us") ou dígitos já normalizados
+ * @returns {Promise<{ id, nome } | null>}
  */
 async function getUserByPhone(waIdOrDigits) {
     const phone = waIdOrDigits.includes('@')
         ? normalizePhone(waIdOrDigits)
         : waIdOrDigits.replace(/\D/g, '');
+    const variants = getBrazilPhoneVariants(phone);
+
     const { data, error } = await supabase
         .from('usuarios')
         .select('id, nome')
-        .eq('whatsapp_phone', phone)
-        .single();
+        .in('whatsapp_phone', variants)
+        .limit(1);
 
-    if (error || !data) return null;
-    return data;
+    if (error || !data?.length) return null;
+    return data[0];
 }
 
 /**
