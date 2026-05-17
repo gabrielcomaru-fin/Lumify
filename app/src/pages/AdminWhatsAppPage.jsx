@@ -165,9 +165,12 @@ function QrPanel() {
 
     useEffect(() => {
         load();
-        const id = setInterval(load, 15000);
+        // Só faz polling enquanto não estiver conectado — quando conectado, para de chamar /qr
+        const id = setInterval(() => {
+            if (!data?.connected) load();
+        }, 15000);
         return () => clearInterval(id);
-    }, [load]);
+    }, [load, data?.connected]);
 
     return (
         <Card>
@@ -177,7 +180,9 @@ function QrPanel() {
                     QR Code
                 </CardTitle>
                 <CardDescription>
-                    Escaneie para conectar o WhatsApp. Atualiza automaticamente a cada 15s.
+                    {data?.connected
+                        ? 'WhatsApp conectado e funcionando.'
+                        : 'Escaneie para conectar o WhatsApp. Atualiza automaticamente a cada 15s.'}
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
