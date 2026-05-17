@@ -3,8 +3,16 @@ const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const { getUserByPhone, getCategorias, insertGasto, insertReceita, insertLog } = require('./supabase');
 const { parseFinanceiro } = require('./ai');
+
+// ─── Remover lock files do Chromium deixados por processos anteriores ─────────
+const sessionDir = path.join(process.cwd(), '.wwebjs_auth', 'session');
+['SingletonLock', 'SingletonCookie', 'SingletonSocket'].forEach((f) => {
+    try { fs.unlinkSync(path.join(sessionDir, f)); } catch {}
+});
 
 const app = express();
 
