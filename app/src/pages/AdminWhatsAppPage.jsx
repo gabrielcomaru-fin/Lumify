@@ -28,10 +28,12 @@ const BOT_TOKEN = config.botAdminToken;
 // ─── Utilitários ─────────────────────────────────────────────────────────────
 
 async function fetchBot(path) {
+    if (!BOT_URL) throw new Error('VITE_BOT_URL não configurada no Vercel');
+    if (!BOT_TOKEN) throw new Error('VITE_BOT_ADMIN_TOKEN não configurada no Vercel');
     const res = await fetch(`${BOT_URL}${path}`, {
         headers: { 'x-admin-token': BOT_TOKEN },
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status} — verifique BOT_ADMIN_TOKEN`);
     return res.json();
 }
 
@@ -65,14 +67,18 @@ function StatusPanel() {
     const [connected, setConnected] = useState(null);
     const [loading, setLoading] = useState(true);
     const [lastCheck, setLastCheck] = useState(null);
+    const [fetchError, setFetchError] = useState(null);
 
     const check = useCallback(async () => {
         setLoading(true);
+        setFetchError(null);
         try {
             const data = await fetchBot('/status');
             setConnected(data.connected);
-        } catch {
+        } catch (err) {
             setConnected(null);
+            setFetchError(err.message);
+            console.error('[Admin/status]', err.message);
         } finally {
             setLoading(false);
             setLastCheck(new Date());
@@ -120,7 +126,12 @@ function StatusPanel() {
                         Verificar
                     </Button>
                 </div>
-                {lastCheck && (
+                {fetchError && (
+                    <p className="text-xs text-red-500 font-mono bg-red-500/10 px-2 py-1 rounded">
+                        Erro: {fetchError}
+                    </p>
+                )}
+                {lastCheck && !fetchError && (
                     <p className="text-xs text-muted-foreground">
                         Última verificação: {formatDate(lastCheck)} · atualiza a cada 30s
                     </p>
@@ -135,14 +146,18 @@ function StatusPanel() {
 function QrPanel() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
 
     const load = useCallback(async () => {
         setLoading(true);
+        setFetchError(null);
         try {
             const d = await fetchBot('/qr');
             setData(d);
-        } catch {
+        } catch (err) {
             setData(null);
+            setFetchError(err.message);
+            console.error('[Admin/qr]', err.message);
         } finally {
             setLoading(false);
         }
@@ -175,6 +190,14 @@ function QrPanel() {
                     <div className="flex flex-col items-center gap-2 py-8">
                         <CheckCircle className="w-12 h-12 text-green-500" />
                         <p className="font-semibold text-green-600">WhatsApp já está conectado!</p>
+                    </div>
+                ) : fetchError ? (
+                    <div className="flex flex-col items-center gap-2 py-6 w-full">
+                        <XCircle className="w-8 h-8 text-red-500" />
+                        <p className="text-sm font-medium text-red-600">Erro ao conectar ao bot</p>
+                        <p className="text-xs text-red-500 font-mono bg-red-500/10 px-3 py-1.5 rounded text-center max-w-xs">
+                            {fetchError}
+                        </p>
                     </div>
                 ) : data?.qr ? (
                     <div className="flex flex-col items-center gap-3">
