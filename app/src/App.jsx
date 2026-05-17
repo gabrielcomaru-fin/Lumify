@@ -20,6 +20,7 @@ const InvestmentProjectionPage = lazy(() => import('@/pages/InvestmentProjection
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })));
 const GamificationPage = lazy(() => import('@/pages/GamificationPage').then(m => ({ default: m.GamificationPage })));
 const PatrimonyDetailPage = lazy(() => import('@/pages/PatrimonyDetailPage').then(m => ({ default: m.PatrimonyDetailPage })));
+const AdminWhatsAppPage = lazy(() => import('@/pages/AdminWhatsAppPage').then(m => ({ default: m.AdminWhatsAppPage })));
 
 import { MainLayout } from '@/components/MainLayout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -116,6 +117,11 @@ function AppContent() {
                 <Route path="/conquistas" element={user ? <GamificationPage /> : <Navigate to="/login" replace />} />
                 <Route path="/configuracoes" element={user ? <SettingsPage /> : <Navigate to="/login" replace />} />
                 <Route path="/planos" element={user ? <PlansPage /> : <Navigate to="/login" replace />} />
+                <Route path="/admin/whatsapp" element={
+                  user?.app_metadata?.is_admin === true
+                    ? <AdminWhatsAppPage />
+                    : <Navigate to="/dashboard" replace />
+                } />
               </Route>
               
               <Route path="*" element={<Navigate to={user && !shouldBlockDashboardRedirect ? "/dashboard" : "/"} replace />} />

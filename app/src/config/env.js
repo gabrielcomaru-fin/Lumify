@@ -14,7 +14,9 @@ export const config = {
       (import.meta.env.MODE === 'development' 
         ? 'http://localhost:5173' 
         : 'https://lumify.app.br'),
-  }
+  },
+  botUrl: import.meta.env.VITE_BOT_URL || '',
+  botAdminToken: import.meta.env.VITE_BOT_ADMIN_TOKEN || '',
 };
 
 // Validação das variáveis obrigatórias

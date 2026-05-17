@@ -29,6 +29,7 @@ import {
   Wallet,
   Trophy,
   PiggyBank,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
@@ -170,6 +171,22 @@ export function UnifiedNavigation({
               onNavigate={isMobile ? onClose : undefined}
             />
         ))}
+
+          {/* Item admin — visível somente para administradores */}
+          {currentUser?.app_metadata?.is_admin === true && (
+            <>
+              {(!isCollapsed || isMobile) && (
+                <div className="px-2 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Admin</div>
+              )}
+              <NavEntry
+                item={{ to: '/admin/whatsapp', label: 'Admin WhatsApp', icon: ShieldCheck }}
+                isCollapsed={isCollapsed && !isMobile}
+                isMobile={isMobile}
+                isActivePath={location.pathname}
+                onNavigate={isMobile ? onClose : undefined}
+              />
+            </>
+          )}
       </nav>
 
       {/* User Menu */}

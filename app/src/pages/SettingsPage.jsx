@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { supabase } from '@/lib/customSupabaseClient';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -32,7 +33,8 @@ import {
   FileText,
   Palette,
   Database,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react';
 import { useFinance } from '@/contexts/FinanceDataContext';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
@@ -758,6 +760,171 @@ function PaymentMethodsManager() {
   );
 }
 
+// Componente para vincular WhatsApp
+function WhatsAppSettings() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [phone, setPhone] = useState('');
+  const [savedPhone, setSavedPhone] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    async function loadPhone() {
+      if (!user) return;
+      const { data } = await supabase
+        .from('usuarios')
+        .select('whatsapp_phone')
+        .eq('id', user.id)
+        .single();
+      const current = data?.whatsapp_phone || '';
+      setSavedPhone(current);
+      setPhone(formatPhoneDisplay(current));
+      setLoading(false);
+    }
+    loadPhone();
+  }, [user]);
+
+  function formatPhoneDisplay(raw) {
+    if (!raw) return '';
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 13) {
+      return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
+    }
+    if (digits.length === 11) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+    return raw;
+  }
+
+  function parsePhoneRaw(display) {
+    return display.replace(/\D/g, '');
+  }
+
+  async function handleSave() {
+    const raw = parsePhoneRaw(phone);
+    if (raw.length < 10 || raw.length > 13) {
+      toast({
+        title: 'Número inválido',
+        description: 'Informe um número com DDD e dígito 9. Ex: (11) 91234-5678.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const normalized = raw.length === 11 ? `55${raw}` : raw;
+    setSaving(true);
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ whatsapp_phone: normalized })
+      .eq('id', user.id);
+    setSaving(false);
+    if (error) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+    setSavedPhone(normalized);
+    toast({
+      title: 'WhatsApp vinculado!',
+      description: 'Agora você pode registrar despesas pelo WhatsApp.',
+    });
+  }
+
+  async function handleRemove() {
+    setSaving(true);
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ whatsapp_phone: null })
+      .eq('id', user.id);
+    setSaving(false);
+    if (!error) {
+      setSavedPhone('');
+      setPhone('');
+      toast({ title: 'Número removido', description: 'Vínculo com WhatsApp desfeito.' });
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+          <MessageSquare className="w-6 h-6 text-green-500" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold">Agente WhatsApp</h3>
+          <p className="text-sm text-muted-foreground">
+            Registre despesas e receitas enviando mensagens pelo WhatsApp
+          </p>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Vincular número</CardTitle>
+          <CardDescription>
+            Informe seu número do WhatsApp para que o agente reconheça suas mensagens e crie lançamentos automaticamente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Carregando...</p>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp-phone">Número do WhatsApp</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="whatsapp-phone"
+                      placeholder="(11) 91234-5678"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving ? 'Salvando...' : savedPhone ? 'Atualizar' : 'Vincular'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Digite com DDD. Ex: (11) 91234-5678
+                </p>
+              </div>
+
+              {savedPhone && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                      Número vinculado: +{savedPhone}
+                    </span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleRemove} disabled={saving} className="text-destructive hover:text-destructive h-7 px-2">
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+
+              <div className="rounded-lg border p-4 space-y-2">
+                <p className="text-sm font-medium">Como usar:</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• <span className="font-mono bg-muted px-1 rounded">Gastei 200 em gasolina</span> → cria despesa</li>
+                  <li>• <span className="font-mono bg-muted px-1 rounded">Recebi 3000 de salário</span> → cria receita</li>
+                  <li>• <span className="font-mono bg-muted px-1 rounded">!ajuda</span> → lista os comandos</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // Componente para planos e assinatura
 function PlansSettings() {
   const navigate = useNavigate();
@@ -850,6 +1017,11 @@ export function SettingsPage() {
                 </CardContent>
               </Card>
             </div>
+            <Card>
+              <CardContent className="pt-6">
+                <WhatsAppSettings />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="preferences" className="space-y-6">
