@@ -60,3 +60,7 @@ coverage/
 .tmp
 .vercel
 .netlify
+
+# Sessão WhatsApp (whatsapp-web.js)
+whatsapp/.wwebjs_auth/
+whatsapp/.wwebjs_cache/

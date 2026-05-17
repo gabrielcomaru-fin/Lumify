@@ -19,7 +19,7 @@ import {
 import { startOfMonth, endOfMonth, parseISO, differenceInDays, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const QuickActionCard = memo(function QuickActionCard() {
+const QuickActionCard = memo(function QuickActionCard({ secondaryLimit = 2 } = {}) {
   const { expenses, investments, investmentGoal, totalPatrimony } = useFinance();
   const incomeInsights = useIncomeInsights();
 
@@ -172,14 +172,15 @@ const QuickActionCard = memo(function QuickActionCard() {
 
   // Pegar a ação principal e as secundárias
   const primaryAction = smartActions[0];
-  const secondaryActions = smartActions.slice(1, 3);
+  const maxSecondary = Math.max(0, Number(secondaryLimit) || 0);
+  const secondaryActions = smartActions.slice(1, 1 + maxSecondary);
 
   if (!primaryAction) {
     return null;
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Zap className="h-5 w-5 text-primary" />
@@ -189,9 +190,10 @@ const QuickActionCard = memo(function QuickActionCard() {
           Baseado na sua situação atual
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 flex-1 flex flex-col">
         {/* Ação Principal */}
         <motion.div
+          className="flex-1"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}

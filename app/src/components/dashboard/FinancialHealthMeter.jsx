@@ -8,7 +8,7 @@ import { useAdvancedMetrics } from '@/hooks/useAdvancedMetrics';
 import { useFinance } from '@/contexts/FinanceDataContext';
 import { Heart, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Calculator, Info } from 'lucide-react';
 
-const FinancialHealthMeter = memo(function FinancialHealthMeter({ showBreakdownOption = false }) {
+const FinancialHealthMeter = memo(function FinancialHealthMeter({ showBreakdownOption = false, compact = false }) {
   const { financialHealth, trends } = useAdvancedMetrics();
   const { expenses, investments } = useFinance();
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -283,6 +283,7 @@ const FinancialHealthMeter = memo(function FinancialHealthMeter({ showBreakdownO
           </div>
 
           {/* Barra horizontal do termômetro */}
+          {!compact && (
           <div className="w-full md:w-auto md:flex-1 max-w-xs">
             <div className="relative h-3 bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500 rounded-full overflow-hidden">
               <motion.div
@@ -301,9 +302,11 @@ const FinancialHealthMeter = memo(function FinancialHealthMeter({ showBreakdownO
               <span>100</span>
             </div>
           </div>
+          )}
         </div>
 
         {/* Fatores principais */}
+        {!compact && (
         <TooltipProvider>
           <div className="grid grid-cols-3 gap-2 md:gap-3 mt-3 pt-3 border-t border-border/50">
             {topFactors.map((factor, index) => (
@@ -332,9 +335,10 @@ const FinancialHealthMeter = memo(function FinancialHealthMeter({ showBreakdownO
             ))}
           </div>
         </TooltipProvider>
+        )}
 
         {/* Botão para expandir detalhes do cálculo - apenas se showBreakdownOption for true */}
-        {showBreakdownOption && (
+        {!compact && showBreakdownOption && (
         <div className="mt-4 pt-4 border-t border-border/50">
           <Button
             variant="ghost"
