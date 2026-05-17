@@ -1,1 +1,0 @@
-import{u as o,j as t,H as r}from"./index-YUkPHiW1.js";import{A as i}from"./AuthForm-D6s5B_ek.js";import"./label-DPohUDJW.js";function u(){const{signIn:n}=o();return t.jsxs(t.Fragment,{children:[t.jsx(r,{children:t.jsx("title",{children:"Login - Lumify"})}),t.jsx(i,{onLogin:n})]})}export{u as LoginPage};

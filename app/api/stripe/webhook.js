@@ -1,11 +1,17 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-11-20.acacia' });
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+const REQUIRED_ENV = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missingEnv.length > 0) {
+  throw new Error(`[webhook] Missing required env vars: ${missingEnv.join(', ')}`);
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-11-20.acacia' });
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 function readRawBody(req) {
@@ -24,6 +30,24 @@ function planFromPriceId(priceId) {
   if (priceId === proId) return 'pro';
   console.warn('planFromPriceId: unknown priceId, defaulting to free:', priceId);
   return 'free';
+}
+
+async function resolveUserIdByCustomer(customerId) {
+  const cust = await stripe.customers.retrieve(customerId);
+  return cust?.metadata?.supabase_user_id || null;
+}
+
+async function upsertSubscription(userId, fields) {
+  await supabase
+    .from('subscriptions')
+    .upsert({ user_id: userId, ...fields, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+}
+
+async function updateSubscriptionByStripeId(subscriptionId, fields) {
+  await supabase
+    .from('subscriptions')
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq('stripe_subscription_id', subscriptionId);
 }
 
 export default async function handler(req, res) {
@@ -67,19 +91,13 @@ export default async function handler(req, res) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items?.data?.[0]?.price?.id;
         const plan = planFromPriceId(priceId);
-        const customerId = session.customer;
-        await supabase.from('subscriptions').upsert(
-          {
-            user_id: userId,
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId,
-            plan,
-            status: subscription.status,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id' }
-        );
+        await upsertSubscription(userId, {
+          stripe_customer_id: session.customer,
+          stripe_subscription_id: subscriptionId,
+          plan,
+          status: subscription.status,
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        });
         break;
       }
 
@@ -88,45 +106,99 @@ export default async function handler(req, res) {
         const sub = event.data.object;
         const subscriptionId = sub.id;
         const customerId = sub.customer;
+        const plan = event.type === 'customer.subscription.deleted'
+          ? 'free'
+          : planFromPriceId(sub.items?.data?.[0]?.price?.id);
+        const periodEnd = sub.current_period_end
+          ? new Date(sub.current_period_end * 1000).toISOString()
+          : null;
+
         const { data: row } = await supabase
           .from('subscriptions')
           .select('user_id')
           .eq('stripe_subscription_id', subscriptionId)
           .maybeSingle();
+
         if (!row?.user_id) {
-          const cust = await stripe.customers.retrieve(customerId);
-          const userId = cust.metadata?.supabase_user_id;
+          const userId = await resolveUserIdByCustomer(customerId);
           if (!userId) break;
-          await supabase.from('subscriptions').upsert(
-            {
-              user_id: userId,
-              stripe_customer_id: customerId,
-              stripe_subscription_id: subscriptionId,
-              plan: event.type === 'customer.subscription.deleted' ? 'free' : planFromPriceId(sub.items?.data?.[0]?.price?.id),
-              status: sub.status,
-              current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'user_id' }
-          );
-          break;
-        }
-        const plan = event.type === 'customer.subscription.deleted' ? 'free' : planFromPriceId(sub.items?.data?.[0]?.price?.id);
-        await supabase
-          .from('subscriptions')
-          .update({
+          await upsertSubscription(userId, {
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
             plan,
             status: sub.status,
-            current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
-            updated_at: new Date().toISOString(),
-          })
+            current_period_end: periodEnd,
+          });
+          break;
+        }
+
+        await supabase
+          .from('subscriptions')
+          .update({ plan, status: sub.status, current_period_end: periodEnd, updated_at: new Date().toISOString() })
           .eq('user_id', row.user_id);
         break;
       }
 
-      case 'invoice.paid':
-      case 'invoice.payment_failed':
+      case 'invoice.paid': {
+        const invoice = event.data.object;
+        const subscriptionId = invoice.subscription;
+        const customerId = invoice.customer;
+        if (!subscriptionId) break;
+
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const priceId = subscription.items?.data?.[0]?.price?.id;
+        const plan = planFromPriceId(priceId);
+        const periodEnd = subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000).toISOString()
+          : null;
+
+        const { data: row } = await supabase
+          .from('subscriptions')
+          .select('user_id')
+          .eq('stripe_subscription_id', subscriptionId)
+          .maybeSingle();
+
+        if (row?.user_id) {
+          await supabase
+            .from('subscriptions')
+            .update({ plan, status: 'active', current_period_end: periodEnd, updated_at: new Date().toISOString() })
+            .eq('user_id', row.user_id);
+        } else {
+          const userId = await resolveUserIdByCustomer(customerId);
+          if (userId) {
+            await upsertSubscription(userId, {
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId,
+              plan,
+              status: 'active',
+              current_period_end: periodEnd,
+            });
+          }
+        }
         break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        const subscriptionId = invoice.subscription;
+        if (!subscriptionId) break;
+
+        const { data: row } = await supabase
+          .from('subscriptions')
+          .select('user_id')
+          .eq('stripe_subscription_id', subscriptionId)
+          .maybeSingle();
+
+        if (row?.user_id) {
+          await supabase
+            .from('subscriptions')
+            .update({ status: 'past_due', updated_at: new Date().toISOString() })
+            .eq('user_id', row.user_id);
+        }
+
+        console.warn('invoice.payment_failed for subscription:', subscriptionId, 'customer:', invoice.customer);
+        break;
+      }
 
       default:
         break;
