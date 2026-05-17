@@ -9,11 +9,13 @@ const { parseFinanceiro } = require('./ai');
 const app = express();
 
 // ─── CORS — permite requisições do app Lumify ────────────────────────────────
-app.use(cors({
+const corsOptions = {
     origin: '*',
     methods: ['GET', 'OPTIONS'],
     allowedHeaders: ['x-admin-token', 'content-type'],
-}));
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // preflight explícito para todos os endpoints
 
 // ─── Estado do bot ───────────────────────────────────────────────────────────
 
